@@ -46,15 +46,19 @@ class WelcomePage extends StatelessWidget {
                   FilledButton.icon(
                     icon: const Icon(Icons.offline_bolt),
                     label: const Text('Continue Offline'),
-                    onPressed: () => Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (_) => HomeShell(
-                          api: api,
-                          authStore: authStore,
-                          themeController: themeController,
+                    onPressed: () async {
+                      await authStore.markOfflineHomeSeen();
+                      if (!context.mounted) return;
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (_) => HomeShell(
+                            api: api,
+                            authStore: authStore,
+                            themeController: themeController,
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(

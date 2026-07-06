@@ -1,19 +1,26 @@
 import 'package:flutter/material.dart';
 
 import '../../core/equalizer_bridge.dart';
+import '../../core/api_client.dart';
+import '../../core/auth_store.dart';
 import '../../core/theme_controller.dart';
+import '../auth/login_page.dart';
 import '../player/player_controller.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({
     super.key,
     required this.isLoggedIn,
+    required this.api,
+    required this.authStore,
     required this.player,
     required this.themeController,
     required this.onLogout,
   });
 
   final bool isLoggedIn;
+  final ApiClient api;
+  final AuthStore authStore;
   final PlayerController player;
   final ThemeController themeController;
   final Future<void> Function() onLogout;
@@ -187,6 +194,42 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
         const Divider(),
+        if (!widget.isLoggedIn) ...[
+          Text('Account', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          ListTile(
+            leading: const Icon(Icons.login),
+            title: const Text('Login to Laras Server'),
+            subtitle: const Text(
+              'Gunakan server pribadi untuk upload, stream, dan sync.',
+            ),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => LoginPage(
+                  api: widget.api,
+                  authStore: widget.authStore,
+                  themeController: widget.themeController,
+                ),
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.person_add),
+            title: const Text('Register Server Account'),
+            subtitle: const Text('Buat akun server pribadi Laras.'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => LoginPage(
+                  api: widget.api,
+                  authStore: widget.authStore,
+                  themeController: widget.themeController,
+                  initialRegisterMode: true,
+                ),
+              ),
+            ),
+          ),
+          const Divider(),
+        ],
         if (widget.isLoggedIn)
           ListTile(
             leading: const Icon(Icons.logout),
@@ -198,9 +241,10 @@ class _SettingsPageState extends State<SettingsPage> {
         else
           const ListTile(
             leading: Icon(Icons.info_outline),
-            title: Text('Tidak wajib login'),
+            title: Text('Offline tetap utama'),
             subtitle: Text(
-                'Login hanya dibutuhkan saat ingin memakai server pribadi.'),
+              'Server login hanya fitur tambahan dan bisa diakses kapan saja dari Settings.',
+            ),
           ),
       ],
     );

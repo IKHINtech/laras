@@ -60,6 +60,8 @@ class _HomeShellState extends State<HomeShell> {
       LocalPlaylistsPage(player: player, store: localStore),
       SettingsPage(
         isLoggedIn: widget.authStore.token != null,
+        api: widget.api,
+        authStore: widget.authStore,
         player: player,
         themeController: widget.themeController,
         onLogout: () async {

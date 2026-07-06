@@ -79,18 +79,19 @@ class _LarasAppState extends State<LarasApp> {
         ),
         useMaterial3: true,
       ),
-      home: widget.authStore.token == null
-          ? WelcomePage(
-              api: api,
-              authStore: widget.authStore,
-              themeController: widget.themeController,
-            )
-          : HomeShell(
-              api: api,
-              authStore: widget.authStore,
-              themeController: widget.themeController,
-              initialIndex: 0,
-            ),
+      home:
+          widget.authStore.token == null && !widget.authStore.hasSeenOfflineHome
+              ? WelcomePage(
+                  api: api,
+                  authStore: widget.authStore,
+                  themeController: widget.themeController,
+                )
+              : HomeShell(
+                  api: api,
+                  authStore: widget.authStore,
+                  themeController: widget.themeController,
+                  initialIndex: 0,
+                ),
     );
   }
 }
