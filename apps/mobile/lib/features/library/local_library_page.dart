@@ -26,6 +26,7 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
   final searchFocus = FocusNode();
   final scrollController = ScrollController();
   List<Song> localSongs = [];
+  List<Song> collageSongs = [];
   Set<String> favoriteIds = <String>{};
   bool loading = false;
   bool showCollapsedActions = false;
@@ -59,6 +60,7 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
     final favorites = await widget.store.loadFavorites();
     localSongs = cachedSongs;
     favoriteIds = favorites;
+    await _refreshCollageSongs();
     if (mounted) setState(() {});
   }
 
@@ -86,6 +88,7 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
         .where((song) => song.streamUrl.isNotEmpty)
         .toList();
     await widget.store.saveLibrary(localSongs);
+    await _refreshCollageSongs();
 
     if (mounted) {
       setState(() => loading = false);
@@ -112,6 +115,35 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
       filePath: path,
       isLocal: true,
     );
+  }
+
+  Future<void> _refreshCollageSongs() async {
+    final candidates =
+        localSongs.where((song) => song.artworkId != null).toList();
+    final selected = <Song>[];
+    final seenArtworkIds = <int>{};
+
+    for (final song in candidates) {
+      final artworkId = song.artworkId;
+      if (artworkId == null || seenArtworkIds.contains(artworkId)) continue;
+
+      final bytes = await query.queryArtwork(
+        artworkId,
+        ArtworkType.AUDIO,
+        format: ArtworkFormat.JPEG,
+        size: 200,
+        quality: 40,
+      );
+
+      if (bytes != null && bytes.isNotEmpty) {
+        selected.add(song);
+        seenArtworkIds.add(artworkId);
+      }
+
+      if (selected.length == 4) break;
+    }
+
+    collageSongs = selected;
   }
 
   List<Song> get filteredSongs {
@@ -374,7 +406,7 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  _ArtworkCollageBackground(songs: localSongs),
+                  _ArtworkCollageBackground(songs: collageSongs),
                   DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -552,32 +584,90 @@ class _ArtworkCollageBackground extends StatelessWidget {
       );
     }
 
+    final tiles = List<Song?>.generate(
+      4,
+      (index) => index < covers.length ? covers[index] : null,
+    );
+
     return Opacity(
-      opacity: 0.22,
-      child: GridView.builder(
-        physics: const NeverScrollableScrollPhysics(),
-        padding: EdgeInsets.zero,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 1.4,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
+      opacity: 0.2,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final gap = 8.0;
+            final tileWidth = (constraints.maxWidth - (gap * 3)) / 4;
+            final tileHeight = constraints.maxHeight * 0.55;
+            final topOffsets = <double>[8, 0, 12, 4];
+            final rotations = <double>[-0.08, 0.05, -0.04, 0.07];
+
+            return Stack(
+              children: [
+                for (var i = 0; i < 4; i++)
+                  _CollageTile(
+                    song: tiles[i],
+                    left: i * (tileWidth + gap),
+                    top: topOffsets[i],
+                    width: tileWidth,
+                    height: tileHeight,
+                    rotation: rotations[i],
+                  ),
+              ],
+            );
+          },
         ),
-        itemCount: covers.length,
-        itemBuilder: (_, index) {
-          final song = covers[index];
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: QueryArtworkWidget(
-              id: song.artworkId!,
-              type: ArtworkType.AUDIO,
-              artworkFit: BoxFit.cover,
-              nullArtworkWidget: Container(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              ),
-            ),
-          );
-        },
+      ),
+    );
+  }
+}
+
+class _CollageTile extends StatelessWidget {
+  const _CollageTile({
+    required this.song,
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+    required this.rotation,
+  });
+
+  final Song? song;
+  final double left;
+  final double top;
+  final double width;
+  final double height;
+  final double rotation;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: left,
+      top: top,
+      width: width,
+      height: height,
+      child: Transform.rotate(
+        angle: rotation,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: song == null
+              ? Container(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withValues(alpha: 0.45),
+                )
+              : QueryArtworkWidget(
+                  id: song!.artworkId!,
+                  type: ArtworkType.AUDIO,
+                  artworkFit: BoxFit.cover,
+                  nullArtworkWidget: Container(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.45),
+                  ),
+                ),
+        ),
       ),
     );
   }
