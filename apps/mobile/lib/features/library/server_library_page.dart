@@ -119,63 +119,60 @@ class _ServerLibraryPageState extends State<ServerLibraryPage> {
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 80),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: search,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search),
-                      hintText: 'Search server songs',
-                    ),
-                    onSubmitted: (_) => load(),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: search,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.search),
+                    hintText: 'Search server songs',
                   ),
+                  onSubmitted: (_) => load(),
                 ),
-                IconButton(onPressed: load, icon: const Icon(Icons.refresh)),
-                FilledButton.icon(
-                  onPressed: upload,
-                  icon: const Icon(Icons.upload),
-                  label: const Text('Upload'),
+              ),
+              IconButton(onPressed: load, icon: const Icon(Icons.refresh)),
+              FilledButton.icon(
+                onPressed: upload,
+                icon: const Icon(Icons.upload),
+                label: const Text('Upload'),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: loading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView.builder(
+                  itemCount: songs.length,
+                  itemBuilder: (_, i) {
+                    final song = songs[i];
+                    return ListTile(
+                      leading: const CircleAvatar(
+                        child: Icon(Icons.music_note),
+                      ),
+                      title: Text(song.title),
+                      subtitle: Text(
+                        song.artist.isEmpty ? 'Unknown Artist' : song.artist,
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.favorite_border),
+                        onPressed: () => widget.api.toggleFavorite(song.id),
+                      ),
+                      onTap: () => widget.player.playQueue(
+                        songs,
+                        i,
+                        token: widget.authStore.token,
+                      ),
+                    );
+                  },
                 ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: loading
-                ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
-                    itemCount: songs.length,
-                    itemBuilder: (_, i) {
-                      final song = songs[i];
-                      return ListTile(
-                        leading: const CircleAvatar(
-                          child: Icon(Icons.music_note),
-                        ),
-                        title: Text(song.title),
-                        subtitle: Text(
-                          song.artist.isEmpty ? 'Unknown Artist' : song.artist,
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.favorite_border),
-                          onPressed: () => widget.api.toggleFavorite(song.id),
-                        ),
-                        onTap: () => widget.player.playQueue(
-                          songs,
-                          i,
-                          token: widget.authStore.token,
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

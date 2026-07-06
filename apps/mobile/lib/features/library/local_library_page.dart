@@ -21,6 +21,8 @@ class LocalLibraryPage extends StatefulWidget {
 class _LocalLibraryPageState extends State<LocalLibraryPage> {
   final query = OnAudioQuery();
   final search = TextEditingController();
+  final searchFocus = FocusNode();
+  final scrollController = ScrollController();
   List<Song> localSongs = [];
   Set<String> favoriteIds = <String>{};
   bool loading = false;
@@ -34,6 +36,8 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
   @override
   void dispose() {
     search.dispose();
+    searchFocus.dispose();
+    scrollController.dispose();
     super.dispose();
   }
 
@@ -238,6 +242,7 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
       );
     }
     return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 16),
       itemCount: songs.length,
       itemBuilder: (_, i) => _buildSongTile(songs[i], songs),
     );
@@ -251,6 +256,7 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
     if (loading) return const Center(child: CircularProgressIndicator());
     if (buckets.isEmpty) return Center(child: Text(emptyLabel));
     return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 16),
       itemCount: buckets.length,
       itemBuilder: (_, i) {
         final bucket = buckets[i];
@@ -295,78 +301,167 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
 
     return DefaultTabController(
       length: 4,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 80),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          localSongs.isEmpty
-                              ? 'Offline library empty. Scan device music first.'
-                              : '${localSongs.length} songs cached for offline browsing.',
-                        ),
-                      ),
-                      FilledButton.icon(
-                        onPressed: scan,
-                        icon: const Icon(Icons.folder),
-                        label: const Text('Scan'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: search,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search),
-                      hintText: 'Search songs, artist, album, folder',
+      child: NestedScrollView(
+        controller: scrollController,
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverAppBar(
+            pinned: true,
+            floating: false,
+            automaticallyImplyLeading: false,
+            title: const Text('Koleksi'),
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            surfaceTintColor: Colors.transparent,
+            actions: innerBoxIsScrolled
+                ? [
+                    IconButton(
+                      icon: const Icon(Icons.search),
+                      onPressed: () async {
+                        await scrollController.animateTo(
+                          0,
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOut,
+                        );
+                        if (!mounted) return;
+                        searchFocus.requestFocus();
+                      },
                     ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 8),
-                  const TabBar(
-                    isScrollable: true,
-                    tabs: [
-                      Tab(text: 'Songs'),
-                      Tab(text: 'Artists'),
-                      Tab(text: 'Albums'),
-                      Tab(text: 'Folders'),
-                    ],
-                  ),
+                    PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'scan') {
+                          scan();
+                        }
+                      },
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(
+                          value: 'scan',
+                          child: Text('Scan ulang lagu'),
+                        ),
+                      ],
+                    ),
+                  ]
+                : null,
+          ),
+          SliverAppBar(
+            automaticallyImplyLeading: false,
+            pinned: false,
+            floating: false,
+            snap: false,
+            toolbarHeight: 0,
+            expandedHeight: 148,
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            surfaceTintColor: Colors.transparent,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              localSongs.isEmpty
+                                  ? 'Offline library empty. Scan device music first.'
+                                  : '${localSongs.length} songs cached for offline browsing.',
+                            ),
+                          ),
+                          FilledButton.icon(
+                            onPressed: scan,
+                            icon: const Icon(Icons.folder),
+                            label: const Text('Scan'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: search,
+                      focusNode: searchFocus,
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.search),
+                        hintText: 'Search songs, artist, album, folder',
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _StickyTabBarDelegate(
+              color: Theme.of(context).colorScheme.surface,
+              tabBar: const TabBar(
+                isScrollable: true,
+                tabs: [
+                  Tab(text: 'Songs'),
+                  Tab(text: 'Artists'),
+                  Tab(text: 'Albums'),
+                  Tab(text: 'Folders'),
                 ],
               ),
             ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _buildSongsTab(songs),
-                  _buildBucketTab(
-                    buckets: artistBuckets,
-                    icon: Icons.person,
-                    emptyLabel: 'No artists found.',
-                  ),
-                  _buildBucketTab(
-                    buckets: albumBuckets,
-                    icon: Icons.album,
-                    emptyLabel: 'No albums found.',
-                  ),
-                  _buildBucketTab(
-                    buckets: folderBuckets,
-                    icon: Icons.folder,
-                    emptyLabel: 'No folders found.',
-                  ),
-                ],
-              ),
+          ),
+        ],
+        body: TabBarView(
+          children: [
+            _buildSongsTab(songs),
+            _buildBucketTab(
+              buckets: artistBuckets,
+              icon: Icons.person,
+              emptyLabel: 'No artists found.',
+            ),
+            _buildBucketTab(
+              buckets: albumBuckets,
+              icon: Icons.album,
+              emptyLabel: 'No albums found.',
+            ),
+            _buildBucketTab(
+              buckets: folderBuckets,
+              icon: Icons.folder,
+              emptyLabel: 'No folders found.',
             ),
           ],
         ),
       ),
     );
+  }
+}
+
+class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
+  const _StickyTabBarDelegate({
+    required this.color,
+    required this.tabBar,
+  });
+
+  final Color color;
+  final TabBar tabBar;
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      color: color,
+      alignment: Alignment.centerLeft,
+      child: tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _StickyTabBarDelegate oldDelegate) {
+    return oldDelegate.color != color || oldDelegate.tabBar != tabBar;
   }
 }
 

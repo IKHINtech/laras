@@ -48,6 +48,7 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    final showShellAppBar = index != 0;
     final pages = [
       LocalLibraryPage(player: player, store: localStore),
       ServerLibraryPage(
@@ -67,34 +68,69 @@ class _HomeShellState extends State<HomeShell> {
         },
       ),
     ];
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Laras'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Chip(
-              avatar: Icon(
-                widget.authStore.token == null
-                    ? Icons.offline_bolt
-                    : Icons.cloud_done,
-                size: 18,
-              ),
-              label: Text(
-                widget.authStore.token == null ? 'Offline' : 'Server',
+      appBar: showShellAppBar
+          ? AppBar(
+              title: const Text('Laras'),
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Chip(
+                    avatar: Icon(
+                      widget.authStore.token == null
+                          ? Icons.offline_bolt
+                          : Icons.cloud_done,
+                      size: 18,
+                    ),
+                    label: Text(
+                      widget.authStore.token == null ? 'Offline' : 'Server',
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : null,
+      body: Column(
+        children: [
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              reverseDuration: const Duration(milliseconds: 180),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                final offset = Tween<Offset>(
+                  begin: const Offset(0.03, 0),
+                  end: Offset.zero,
+                ).animate(animation);
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: offset,
+                    child: child,
+                  ),
+                );
+              },
+              child: KeyedSubtree(
+                key: ValueKey(index),
+                child: pages[index],
               ),
             ),
           ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          Positioned.fill(child: pages[index]),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: MiniPlayer(controller: player, store: localStore),
+          StreamBuilder(
+            stream: player.player.sequenceStateStream,
+            builder: (context, snapshot) {
+              final hasMiniPlayer = player.currentSong != null;
+              return AnimatedSize(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                alignment: Alignment.bottomCenter,
+                child: hasMiniPlayer
+                    ? MiniPlayer(controller: player, store: localStore)
+                    : const SizedBox.shrink(),
+              );
+            },
           ),
         ],
       ),
