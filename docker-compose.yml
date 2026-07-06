@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: laras-postgres
+    environment:
+      POSTGRES_USER: laras
+      POSTGRES_PASSWORD: laras
+      POSTGRES_DB: laras
+    ports:
+      - "5432:5432"
+    volumes:
+      - laras_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U laras -d laras"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./services/api
+    container_name: laras-api
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    volumes:
+      - laras_music_data:/data/music
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  laras_postgres_data:
+  laras_music_data:

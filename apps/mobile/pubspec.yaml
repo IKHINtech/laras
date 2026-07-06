@@ -1,0 +1,36 @@
+name: laras_mobile
+description: Laras self-hosted and local music player.
+publish_to: 'none'
+version: 0.7.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  dio: ^5.7.0
+  just_audio: ^0.9.42
+  audio_session: ^0.1.25
+  audio_service: ^0.18.15
+  just_audio_background: ^0.0.1-beta.13
+  on_audio_query: ^2.9.0
+  permission_handler: ^11.3.1
+  file_picker: ^8.1.4
+  shared_preferences: ^2.3.3
+  path_provider: ^2.1.5
+  sqflite: ^2.4.3
+  flutter_bloc: ^8.1.6
+  equatable: ^2.0.7
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
