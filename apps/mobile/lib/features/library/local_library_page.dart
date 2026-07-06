@@ -19,6 +19,8 @@ class LocalLibraryPage extends StatefulWidget {
 }
 
 class _LocalLibraryPageState extends State<LocalLibraryPage> {
+  static const _collapsedActionsOffset = 72.0;
+
   final query = OnAudioQuery();
   final search = TextEditingController();
   final searchFocus = FocusNode();
@@ -26,19 +28,30 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
   List<Song> localSongs = [];
   Set<String> favoriteIds = <String>{};
   bool loading = false;
+  bool showCollapsedActions = false;
 
   @override
   void initState() {
     super.initState();
+    scrollController.addListener(_handleScroll);
     _loadInitial();
   }
 
   @override
   void dispose() {
+    scrollController.removeListener(_handleScroll);
     search.dispose();
     searchFocus.dispose();
     scrollController.dispose();
     super.dispose();
+  }
+
+  void _handleScroll() {
+    final next = scrollController.hasClients &&
+        scrollController.offset >= _collapsedActionsOffset;
+    if (next != showCollapsedActions && mounted) {
+      setState(() => showCollapsedActions = next);
+    }
   }
 
   Future<void> _loadInitial() async {
@@ -311,7 +324,7 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
             title: const Text('Koleksi'),
             backgroundColor: Theme.of(context).colorScheme.surface,
             surfaceTintColor: Colors.transparent,
-            actions: innerBoxIsScrolled
+            actions: showCollapsedActions
                 ? [
                     IconButton(
                       icon: const Icon(Icons.search),
