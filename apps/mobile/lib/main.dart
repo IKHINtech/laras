@@ -17,7 +17,7 @@ Future<void> main() async {
   await JustAudioBackground.init(
     androidNotificationChannelId: 'id.my.sarikhin.laras.audio',
     androidNotificationChannelName: 'Laras Playback',
-    androidNotificationOngoing: true,
+    androidNotificationOngoing: false,
     androidStopForegroundOnPause: false,
     preloadArtwork: true,
   );
