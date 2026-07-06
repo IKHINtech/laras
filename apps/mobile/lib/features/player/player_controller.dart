@@ -5,6 +5,8 @@ import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
+import 'package:on_audio_query/on_audio_query.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../library/local_music_store.dart';
 import '../library/song.dart';
@@ -57,6 +59,7 @@ class PlayerController extends ChangeNotifier {
 
   final LocalMusicStore store;
   final AudioPlayer player = AudioPlayer();
+  final OnAudioQuery _audioQuery = OnAudioQuery();
   final List<StreamSubscription<dynamic>> _subs = [];
   List<Song> queue = [];
   int currentIndex = 0;
@@ -82,21 +85,9 @@ class PlayerController extends ChangeNotifier {
   Future<void> playQueue(List<Song> songs, int index, {String? token}) async {
     queue = songs;
     currentIndex = index;
-    final sources = songs.map((song) {
-      return AudioSource.uri(
-        song.streamUrl.startsWith('/')
-            ? Uri.file(song.streamUrl)
-            : Uri.parse(song.streamUrl),
-        headers: token == null ? null : {'Authorization': 'Bearer $token'},
-        tag: MediaItem(
-          id: song.id,
-          title: song.title,
-          artist: song.artistLabel,
-          album: song.albumLabel,
-          artUri: _artUri(song),
-        ),
-      );
-    }).toList();
+    final sources = await Future.wait(
+      songs.map((song) => _createSource(song, token: token)),
+    );
     await player.setAudioSource(
       ConcatenatingAudioSource(children: sources),
       initialIndex: index,
@@ -238,10 +229,50 @@ class PlayerController extends ChangeNotifier {
     });
   }
 
-  Uri? _artUri(Song song) {
-    if (!song.isLocal || !song.streamUrl.startsWith('/')) return null;
-    if (!File(song.streamUrl).existsSync()) return null;
-    return Uri.file(song.streamUrl);
+  Future<AudioSource> _createSource(Song song, {String? token}) async {
+    return AudioSource.uri(
+      song.streamUrl.startsWith('/')
+          ? Uri.file(song.streamUrl)
+          : Uri.parse(song.streamUrl),
+      headers: token == null ? null : {'Authorization': 'Bearer $token'},
+      tag: MediaItem(
+        id: song.id,
+        title: song.title,
+        artist: song.artistLabel,
+        album: song.albumLabel,
+        artUri: await _artUri(song),
+      ),
+    );
+  }
+
+  Future<Uri?> _artUri(Song song) async {
+    if (!song.isLocal || song.artworkId == null) return null;
+
+    final tempDir = await getTemporaryDirectory();
+    final artworkDir = Directory('${tempDir.path}/laras_artwork');
+    if (!await artworkDir.exists()) {
+      await artworkDir.create(recursive: true);
+    }
+
+    final file = File('${artworkDir.path}/audio_${song.artworkId}.jpg');
+    if (await file.exists()) {
+      return file.uri;
+    }
+
+    try {
+      final bytes = await _audioQuery.queryArtwork(
+        song.artworkId!,
+        ArtworkType.AUDIO,
+        format: ArtworkFormat.JPEG,
+        size: 512,
+        quality: 80,
+      );
+      if (bytes == null || bytes.isEmpty) return null;
+      await file.writeAsBytes(bytes, flush: true);
+      return file.uri;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> close() async {
