@@ -36,10 +36,9 @@ class MiniPlayer extends StatelessWidget {
                       child: Icon(Icons.music_note),
                     ),
                   ),
-            title: Text(
-              song.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            title: _MiniMarqueeText(
+              text: song.title,
+              paused: ModalRoute.of(context)?.isCurrent == false,
             ),
             subtitle: Text(
               song.artistLabel,
@@ -67,6 +66,124 @@ class MiniPlayer extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _MiniMarqueeText extends StatefulWidget {
+  const _MiniMarqueeText({
+    required this.text,
+    required this.paused,
+  });
+
+  final String text;
+  final bool paused;
+
+  @override
+  State<_MiniMarqueeText> createState() => _MiniMarqueeTextState();
+}
+
+class _MiniMarqueeTextState extends State<_MiniMarqueeText> {
+  late final ScrollController _scrollController;
+  bool _running = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startIfNeeded());
+  }
+
+  @override
+  void didUpdateWidget(covariant _MiniMarqueeText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _startIfNeeded(reset: true),
+      );
+    }
+    if (oldWidget.paused != widget.paused && !widget.paused) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startIfNeeded());
+    }
+  }
+
+  Future<void> _startIfNeeded({bool reset = false}) async {
+    if (!_scrollController.hasClients) return;
+    if (widget.paused) return;
+
+    if (reset) {
+      _running = false;
+      _scrollController.jumpTo(0);
+    }
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    if (maxScroll <= 0 || _running) return;
+
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+    if (!mounted || !_scrollController.hasClients) return;
+    if (_scrollController.position.maxScrollExtent <= 0) return;
+
+    _running = true;
+    var forward = true;
+    while (mounted && _scrollController.hasClients) {
+      if (widget.paused) {
+        _running = false;
+        return;
+      }
+
+      final target = forward ? _scrollController.position.maxScrollExtent : 0.0;
+      await _scrollController.animateTo(
+        target,
+        duration: const Duration(seconds: 8),
+        curve: Curves.linear,
+      );
+      if (!mounted || !_scrollController.hasClients) return;
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+
+      if (_scrollController.position.maxScrollExtent <= 0) {
+        _running = false;
+        return;
+      }
+      forward = !forward;
+    }
+    _running = false;
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      shaderCallback: (bounds) {
+        return const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            Colors.transparent,
+            Colors.black,
+            Colors.black,
+            Colors.transparent,
+          ],
+          stops: [0.0, 0.08, 0.92, 1.0],
+        ).createShader(bounds);
+      },
+      blendMode: BlendMode.dstIn,
+      child: ClipRect(
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          physics: const NeverScrollableScrollPhysics(),
+          child: Text(
+            widget.text,
+            maxLines: 1,
+            softWrap: false,
+          ),
+        ),
+      ),
     );
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import '../library/local_music_store.dart';
+import '../library/song.dart';
 import 'player_controller.dart';
 import 'lyrics_service.dart';
 
@@ -20,8 +22,6 @@ class NowPlayingPage extends StatefulWidget {
 
 class _NowPlayingPageState extends State<NowPlayingPage> {
   final lyricsService = LyricsService();
-  bool dragging = false;
-  double dragValueMs = 0;
   List<LyricLine> lyrics = const <LyricLine>[];
   String? loadedSongId;
   PlaybackHistory? history;
@@ -43,8 +43,8 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
     final songId = widget.controller.currentSong?.id;
     if (songId != loadedSongId) {
       _loadLyrics();
+      if (mounted) setState(() {});
     }
-    if (mounted) setState(() {});
   }
 
   Future<void> _loadLyrics() async {
@@ -75,19 +75,15 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
       return const Scaffold(body: Center(child: Text('No song playing')));
     }
 
-    final duration = widget.controller.duration;
-    final position = dragging
-        ? Duration(milliseconds: dragValueMs.round())
-        : widget.controller.position;
-    final maxMs =
-        duration.inMilliseconds <= 0 ? 1.0 : duration.inMilliseconds.toDouble();
-    final activeLyricIndex = _activeLyricIndex(position);
-    final remaining = duration - position;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Now Playing'),
         centerTitle: true,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         actions: [
           IconButton(
             icon: const Icon(Icons.queue_music),
@@ -117,30 +113,7 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
               children: [
                 Expanded(
                   child: Center(
-                    child: AspectRatio(
-                      aspectRatio: 1,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(28),
-                        child: song.artworkId == null
-                            ? Container(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                                child: const Icon(Icons.music_note, size: 96),
-                              )
-                            : QueryArtworkWidget(
-                                id: song.artworkId!,
-                                type: ArtworkType.AUDIO,
-                                artworkFit: BoxFit.cover,
-                                nullArtworkWidget: Container(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .surfaceContainerHighest,
-                                  child: const Icon(Icons.music_note, size: 96),
-                                ),
-                              ),
-                      ),
-                    ),
+                    child: _ArtworkCard(song: song),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -168,71 +141,66 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                           ? 'First play'
                           : '${history!.playCount} plays',
                     ),
-                    _MetaChip(
-                      icon: Icons.access_time,
-                      label:
-                          '-${_format(remaining.isNegative ? Duration.zero : remaining)}',
+                    StreamBuilder<Duration>(
+                      stream: widget.controller.player.positionStream,
+                      builder: (context, snapshot) {
+                        final duration = widget.controller.duration;
+                        final position =
+                            snapshot.data ?? widget.controller.position;
+                        final remaining = duration - position;
+                        return _MetaChip(
+                          icon: Icons.access_time,
+                          label:
+                              '-${_format(remaining.isNegative ? Duration.zero : remaining)}',
+                        );
+                      },
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
-                Slider(
-                  value: position.inMilliseconds
-                      .clamp(0, maxMs.toInt())
-                      .toDouble(),
-                  max: maxMs,
-                  onChanged: (value) => setState(() {
-                    dragging = true;
-                    dragValueMs = value;
-                  }),
-                  onChangeEnd: (value) async {
-                    dragging = false;
-                    dragValueMs = value;
-                    await widget.controller
-                        .seek(Duration(milliseconds: value.round()));
-                  },
-                ),
-                Row(
-                  children: [
-                    Text(_format(position)),
-                    const Spacer(),
-                    Text(_format(duration)),
-                  ],
+                _ProgressSection(
+                  controller: widget.controller,
+                  format: _format,
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      iconSize: 36,
-                      onPressed: widget.controller.hasPrevious
-                          ? widget.controller.previous
-                          : null,
-                      icon: const Icon(Icons.skip_previous),
-                    ),
-                    const SizedBox(width: 12),
-                    FilledButton.tonal(
-                      onPressed: widget.controller.playOrPause,
-                      style: FilledButton.styleFrom(
-                        shape: const CircleBorder(),
-                        padding: const EdgeInsets.all(18),
-                      ),
-                      child: Icon(
-                        widget.controller.isPlaying
-                            ? Icons.pause
-                            : Icons.play_arrow,
-                        size: 40,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    IconButton(
-                      iconSize: 36,
-                      onPressed: widget.controller.hasNext
-                          ? widget.controller.next
-                          : null,
-                      icon: const Icon(Icons.skip_next),
-                    ),
-                  ],
+                StreamBuilder<PlayerState>(
+                  stream: widget.controller.player.playerStateStream,
+                  builder: (context, snapshot) {
+                    final playing =
+                        snapshot.data?.playing ?? widget.controller.isPlaying;
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          iconSize: 36,
+                          onPressed: widget.controller.hasPrevious
+                              ? widget.controller.previous
+                              : null,
+                          icon: const Icon(Icons.skip_previous),
+                        ),
+                        const SizedBox(width: 12),
+                        FilledButton.tonal(
+                          onPressed: widget.controller.playOrPause,
+                          style: FilledButton.styleFrom(
+                            shape: const CircleBorder(),
+                            padding: const EdgeInsets.all(18),
+                          ),
+                          child: Icon(
+                            playing ? Icons.pause : Icons.play_arrow,
+                            size: 40,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        IconButton(
+                          iconSize: 36,
+                          onPressed: widget.controller.hasNext
+                              ? widget.controller.next
+                              : null,
+                          icon: const Icon(Icons.skip_next),
+                        ),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -241,9 +209,16 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                 ),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: _LyricsPanel(
-                    lyrics: lyrics,
-                    activeIndex: activeLyricIndex,
+                  child: StreamBuilder<Duration>(
+                    stream: widget.controller.player.positionStream,
+                    builder: (context, snapshot) {
+                      final position =
+                          snapshot.data ?? widget.controller.position;
+                      return _LyricsPanel(
+                        lyrics: lyrics,
+                        activeIndex: _activeLyricIndex(position),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -265,6 +240,98 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
       }
     }
     return active;
+  }
+}
+
+class _ArtworkCard extends StatelessWidget {
+  const _ArtworkCard({required this.song});
+
+  final Song song;
+
+  @override
+  Widget build(BuildContext context) {
+    return AspectRatio(
+      aspectRatio: 1,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: song.artworkId == null
+            ? Container(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: const Icon(Icons.music_note, size: 96),
+              )
+            : QueryArtworkWidget(
+                id: song.artworkId!,
+                type: ArtworkType.AUDIO,
+                artworkFit: BoxFit.cover,
+                nullArtworkWidget: Container(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: const Icon(Icons.music_note, size: 96),
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+class _ProgressSection extends StatefulWidget {
+  const _ProgressSection({
+    required this.controller,
+    required this.format,
+  });
+
+  final PlayerController controller;
+  final String Function(Duration value) format;
+
+  @override
+  State<_ProgressSection> createState() => _ProgressSectionState();
+}
+
+class _ProgressSectionState extends State<_ProgressSection> {
+  bool dragging = false;
+  double dragValueMs = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<Duration>(
+      stream: widget.controller.player.positionStream,
+      builder: (context, snapshot) {
+        final duration = widget.controller.duration;
+        final position = dragging
+            ? Duration(milliseconds: dragValueMs.round())
+            : (snapshot.data ?? widget.controller.position);
+        final maxMs = duration.inMilliseconds <= 0
+            ? 1.0
+            : duration.inMilliseconds.toDouble();
+
+        return Column(
+          children: [
+            Slider(
+              value: position.inMilliseconds.clamp(0, maxMs.toInt()).toDouble(),
+              max: maxMs,
+              onChanged: (value) => setState(() {
+                dragging = true;
+                dragValueMs = value;
+              }),
+              onChangeEnd: (value) async {
+                setState(() {
+                  dragging = false;
+                  dragValueMs = value;
+                });
+                await widget.controller
+                    .seek(Duration(milliseconds: value.round()));
+              },
+            ),
+            Row(
+              children: [
+                Text(widget.format(position)),
+                const Spacer(),
+                Text(widget.format(duration)),
+              ],
+            ),
+          ],
+        );
+      },
+    );
   }
 }
 
