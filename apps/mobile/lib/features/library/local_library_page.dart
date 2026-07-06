@@ -141,6 +141,13 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
     return buckets;
   }
 
+  Future<void> _shuffleAll() async {
+    final songs = filteredSongs;
+    if (songs.isEmpty) return;
+    final queue = [...songs]..shuffle();
+    await widget.player.playQueue(queue, 0);
+  }
+
   Future<void> toggleFavorite(Song song) async {
     await widget.store.toggleFavorite(song.id);
     await _reloadFavorites();
@@ -364,42 +371,71 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
             backgroundColor: Theme.of(context).colorScheme.surface,
             surfaceTintColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
-              background: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              localSongs.isEmpty
-                                  ? 'Offline library empty. Scan device music first.'
-                                  : '${localSongs.length} songs cached for offline browsing.',
-                            ),
-                          ),
-                          FilledButton.icon(
-                            onPressed: scan,
-                            icon: const Icon(Icons.folder),
-                            label: const Text('Scan'),
-                          ),
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _ArtworkCollageBackground(songs: localSongs),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Theme.of(context)
+                              .colorScheme
+                              .surface
+                              .withValues(alpha: 0.15),
+                          Theme.of(context)
+                              .colorScheme
+                              .surface
+                              .withValues(alpha: 0.95),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: search,
-                      focusNode: searchFocus,
-                      decoration: const InputDecoration(
-                        prefixIcon: Icon(Icons.search),
-                        hintText: 'Search songs, artist, album, folder',
-                      ),
-                      onChanged: (_) => setState(() {}),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                localSongs.isEmpty
+                                    ? 'Offline library empty. Scan device music first.'
+                                    : '${localSongs.length} songs cached for offline browsing.',
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ),
+                            FilledButton.icon(
+                              onPressed:
+                                  filteredSongs.isEmpty ? null : _shuffleAll,
+                              icon: const Icon(Icons.shuffle),
+                              label: const Text('Shuffle All'),
+                            ),
+                            const SizedBox(width: 8),
+                            OutlinedButton.icon(
+                              onPressed: scan,
+                              icon: const Icon(Icons.folder),
+                              label: const Text('Scan'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: search,
+                          focusNode: searchFocus,
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(Icons.search),
+                            hintText: 'Search songs, artist, album, folder',
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -475,6 +511,75 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant _StickyTabBarDelegate oldDelegate) {
     return oldDelegate.color != color || oldDelegate.tabBar != tabBar;
+  }
+}
+
+class _ArtworkCollageBackground extends StatelessWidget {
+  const _ArtworkCollageBackground({required this.songs});
+
+  final List<Song> songs;
+
+  @override
+  Widget build(BuildContext context) {
+    final covers =
+        songs.where((song) => song.artworkId != null).take(4).toList();
+    if (covers.isEmpty) {
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context)
+                  .colorScheme
+                  .primaryContainer
+                  .withValues(alpha: 0.55),
+              Theme.of(context)
+                  .colorScheme
+                  .secondaryContainer
+                  .withValues(alpha: 0.35),
+            ],
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.library_music,
+            size: 72,
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12),
+          ),
+        ),
+      );
+    }
+
+    return Opacity(
+      opacity: 0.22,
+      child: GridView.builder(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.zero,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 1.4,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+        ),
+        itemCount: covers.length,
+        itemBuilder: (_, index) {
+          final song = covers[index];
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: QueryArtworkWidget(
+              id: song.artworkId!,
+              type: ArtworkType.AUDIO,
+              artworkFit: BoxFit.cover,
+              nullArtworkWidget: Container(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 
