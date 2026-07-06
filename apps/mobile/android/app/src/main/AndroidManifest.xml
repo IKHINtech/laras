@@ -13,6 +13,11 @@
         android:label="Laras"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+        <meta-data
+            android:name="com.ryanheise.audioservice.default_notification_icon"
+            android:resource="@drawable/ic_stat_laras" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -40,6 +45,7 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
 
         <service
             android:name="com.ryanheise.audioservice.AudioService"

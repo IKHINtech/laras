@@ -20,6 +20,7 @@ Future<void> main() async {
     androidNotificationOngoing: false,
     androidStopForegroundOnPause: false,
     preloadArtwork: true,
+    androidNotificationIcon: 'drawable/ic_stat_laras',
   );
   final authStore = AuthStore();
   await authStore.load();
