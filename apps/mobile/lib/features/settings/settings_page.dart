@@ -225,7 +225,7 @@ class _SettingsPageState extends State<SettingsPage> {
           leading: const Icon(Icons.lyrics),
           title: const Text('Lyrics .lrc'),
           subtitle: const Text(
-            'Now Playing auto-scan .lrc di folder lagu, cache path ke SQLite.',
+            'Now Playing prioritaskan .lrc, lalu fallback ke metadata lyric bila tersedia.',
           ),
         ),
         ListTile(

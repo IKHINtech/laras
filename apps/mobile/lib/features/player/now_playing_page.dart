@@ -24,6 +24,7 @@ class NowPlayingPage extends StatefulWidget {
 class _NowPlayingPageState extends State<NowPlayingPage> {
   final lyricsService = LyricsService();
   List<LyricLine> lyrics = const <LyricLine>[];
+  LyricsSource? lyricsSource;
   String? loadedSongId;
   PlaybackHistory? history;
 
@@ -53,11 +54,14 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
     loadedSongId = song?.id;
     if (song == null) {
       lyrics = const <LyricLine>[];
+      lyricsSource = null;
       history = null;
       if (mounted) setState(() {});
       return;
     }
-    lyrics = await lyricsService.loadLyrics(song, widget.store);
+    final result = await lyricsService.loadLyrics(song, widget.store);
+    lyrics = result.lines;
+    lyricsSource = result.source;
     history = await widget.store.loadPlaybackHistory(song.id);
     if (mounted) setState(() {});
   }
@@ -214,6 +218,7 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                                 snapshot.data ?? widget.controller.position;
                             return _LyricsPanel(
                               lyrics: lyrics,
+                              source: lyricsSource,
                               activeIndex: _activeLyricIndex(position),
                             );
                           },
@@ -255,9 +260,10 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
 
   int _activeLyricIndex(Duration position) {
     if (lyrics.isEmpty) return -1;
+    if (!lyrics.any((line) => line.isTimed)) return -1;
     var active = 0;
     for (var i = 0; i < lyrics.length; i++) {
-      if (lyrics[i].at <= position) {
+      if (lyrics[i].isTimed && lyrics[i].at <= position) {
         active = i;
       } else {
         break;
@@ -446,10 +452,15 @@ class _QueueSheet extends StatelessWidget {
 }
 
 class _LyricsPanel extends StatelessWidget {
-  const _LyricsPanel({required this.lyrics, required this.activeIndex});
+  const _LyricsPanel({
+    required this.lyrics,
+    required this.activeIndex,
+    required this.source,
+  });
 
   final List<LyricLine> lyrics;
   final int activeIndex;
+  final LyricsSource? source;
 
   @override
   Widget build(BuildContext context) {
@@ -461,7 +472,7 @@ class _LyricsPanel extends StatelessWidget {
           color: Theme.of(context).colorScheme.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: const Center(child: Text('No .lrc lyrics found')),
+        child: const Center(child: Text('No lyrics found in .lrc or metadata')),
       );
     }
 
@@ -470,25 +481,44 @@ class _LyricsPanel extends StatelessWidget {
         color: Theme.of(context).colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: lyrics.length,
-        itemBuilder: (_, index) {
-          final active = index == activeIndex;
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Text(
-              lyrics[index].text,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: active ? FontWeight.bold : FontWeight.w400,
-                    color: active
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+      child: Column(
+        children: [
+          if (source != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  'Source: ${source!.label}',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ),
             ),
-          );
-        },
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: lyrics.length,
+              itemBuilder: (_, index) {
+                final active = index == activeIndex;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Text(
+                    lyrics[index].text,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: active ? FontWeight.bold : FontWeight.w400,
+                          color: active
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
