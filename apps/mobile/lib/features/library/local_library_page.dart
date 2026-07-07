@@ -245,40 +245,75 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
 
   Widget _buildSongTile(Song song, List<Song> sourceSongs) {
     final isFavorite = favoriteIds.contains(song.id);
-    return ListTile(
-      leading: song.artworkId == null
-          ? const CircleAvatar(child: Icon(Icons.music_note))
-          : QueryArtworkWidget(
-              id: song.artworkId!,
-              type: ArtworkType.AUDIO,
-              nullArtworkWidget: const CircleAvatar(
-                child: Icon(Icons.music_note),
-              ),
+    final leadingArtwork = song.artworkId == null
+        ? const CircleAvatar(child: Icon(Icons.music_note))
+        : QueryArtworkWidget(
+            id: song.artworkId!,
+            type: ArtworkType.AUDIO,
+            nullArtworkWidget: const CircleAvatar(
+              child: Icon(Icons.music_note),
             ),
-      title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        song.artistLabel,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: PopupMenuButton<String>(
-        onSelected: (value) {
-          if (value == 'favorite') toggleFavorite(song);
-          if (value == 'playlist') addToPlaylist(song);
-        },
-        itemBuilder: (_) => [
-          PopupMenuItem(
-            value: 'favorite',
-            child: Text(isFavorite ? 'Remove favorite' : 'Add favorite'),
+          );
+    return AnimatedBuilder(
+      animation: widget.player,
+      child: leadingArtwork,
+      builder: (context, child) {
+        final theme = Theme.of(context);
+        final isCurrent = widget.player.currentSong?.id == song.id;
+        final activeColor = theme.colorScheme.primary;
+        return ListTile(
+          tileColor: isCurrent
+              ? activeColor.withValues(alpha: 0.10)
+              : Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          const PopupMenuItem(
-            value: 'playlist',
-            child: Text('Add to playlist'),
+          leading: child,
+          title: Text(
+            song.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isCurrent ? activeColor : null,
+              fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+            ),
           ),
-        ],
-      ),
-      onTap: () =>
-          widget.player.playQueue(sourceSongs, sourceSongs.indexOf(song)),
+          subtitle: Text(
+            song.artistLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isCurrent
+                  ? activeColor.withValues(alpha: 0.82)
+                  : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.78),
+            ),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _NowPlayingIndicator(player: widget.player, songId: song.id),
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'favorite') toggleFavorite(song);
+                  if (value == 'playlist') addToPlaylist(song);
+                },
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: 'favorite',
+                    child: Text(isFavorite ? 'Remove favorite' : 'Add favorite'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'playlist',
+                    child: Text('Add to playlist'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          onTap: () =>
+              widget.player.playQueue(sourceSongs, sourceSongs.indexOf(song)),
+        );
+      },
     );
   }
 
@@ -680,6 +715,85 @@ class _GroupBucket {
   final List<Song> songs;
 }
 
+class _NowPlayingIndicator extends StatelessWidget {
+  const _NowPlayingIndicator({
+    required this.player,
+    required this.songId,
+  });
+
+  final PlayerController player;
+  final String songId;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return AnimatedBuilder(
+      animation: player,
+      builder: (context, child) {
+        final isCurrent = player.currentSong?.id == songId;
+        if (!isCurrent) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: player.isPlaying
+                ? _EqualizerGlyph(
+                    color: theme.colorScheme.primary,
+                    phase: player.position.inMilliseconds ~/ 180,
+                  )
+                : Icon(
+                    Icons.pause_circle,
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                  ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _EqualizerGlyph extends StatelessWidget {
+  const _EqualizerGlyph({
+    required this.color,
+    required this.phase,
+  });
+
+  final Color color;
+  final int phase;
+
+  @override
+  Widget build(BuildContext context) {
+    final patterns = <List<double>>[
+      [0.35, 0.9, 0.55],
+      [0.8, 0.45, 0.95],
+      [0.55, 0.85, 0.4],
+      [0.95, 0.6, 0.75],
+    ];
+    final heights = patterns[phase % patterns.length];
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        for (var i = 0; i < heights.length; i++) ...[
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            width: 3,
+            height: 14 * heights[i],
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          if (i != heights.length - 1) const SizedBox(width: 2),
+        ],
+      ],
+    );
+  }
+}
+
 class _BucketSongsPage extends StatelessWidget {
   const _BucketSongsPage({
     required this.title,
@@ -706,43 +820,78 @@ class _BucketSongsPage extends StatelessWidget {
         itemBuilder: (_, i) {
           final song = songs[i];
           final isFavorite = favoriteIds.contains(song.id);
-          return ListTile(
-            leading: song.artworkId == null
-                ? const CircleAvatar(child: Icon(Icons.music_note))
-                : QueryArtworkWidget(
-                    id: song.artworkId!,
-                    type: ArtworkType.AUDIO,
-                    nullArtworkWidget: const CircleAvatar(
-                      child: Icon(Icons.music_note),
-                    ),
+          final leadingArtwork = song.artworkId == null
+              ? const CircleAvatar(child: Icon(Icons.music_note))
+              : QueryArtworkWidget(
+                  id: song.artworkId!,
+                  type: ArtworkType.AUDIO,
+                  nullArtworkWidget: const CircleAvatar(
+                    child: Icon(Icons.music_note),
                   ),
-            title: Text(
-              song.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Text(
-              song.artistLabel,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            trailing: PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'favorite') onToggleFavorite(song);
-                if (value == 'playlist') onAddToPlaylist(song);
-              },
-              itemBuilder: (_) => [
-                PopupMenuItem(
-                  value: 'favorite',
-                  child: Text(isFavorite ? 'Remove favorite' : 'Add favorite'),
+                );
+          return AnimatedBuilder(
+            animation: player,
+            child: leadingArtwork,
+            builder: (context, child) {
+              final theme = Theme.of(context);
+              final isCurrent = player.currentSong?.id == song.id;
+              final activeColor = theme.colorScheme.primary;
+              return ListTile(
+                tileColor: isCurrent
+                    ? activeColor.withValues(alpha: 0.10)
+                    : Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const PopupMenuItem(
-                  value: 'playlist',
-                  child: Text('Add to playlist'),
+                leading: child,
+                title: Text(
+                  song.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isCurrent ? activeColor : null,
+                    fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                  ),
                 ),
-              ],
-            ),
-            onTap: () => player.playQueue(songs, i),
+                subtitle: Text(
+                  song.artistLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isCurrent
+                        ? activeColor.withValues(alpha: 0.82)
+                        : theme.textTheme.bodyMedium?.color?.withValues(
+                            alpha: 0.78,
+                          ),
+                  ),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _NowPlayingIndicator(player: player, songId: song.id),
+                    PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'favorite') onToggleFavorite(song);
+                        if (value == 'playlist') onAddToPlaylist(song);
+                      },
+                      itemBuilder: (_) => [
+                        PopupMenuItem(
+                          value: 'favorite',
+                          child: Text(
+                            isFavorite ? 'Remove favorite' : 'Add favorite',
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'playlist',
+                          child: Text('Add to playlist'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                onTap: () => player.playQueue(songs, i),
+              );
+            },
           );
         },
       ),

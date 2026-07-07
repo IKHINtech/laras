@@ -1,10 +1,10 @@
 name: laras_mobile
 description: Laras self-hosted and local music player.
-publish_to: 'none'
-version: 0.7.0+1
+publish_to: "none"
+version: 0.7.0+2
 
 environment:
-  sdk: '>=3.4.0 <4.0.0'
+  sdk: ">=3.4.0 <4.0.0"
 
 dependencies:
   flutter:

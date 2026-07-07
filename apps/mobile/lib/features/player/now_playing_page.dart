@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import '../library/local_music_store.dart';
@@ -76,26 +77,19 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Now Playing'),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.queue_music),
-            onPressed: () => showModalBottomSheet<void>(
-              context: context,
-              showDragHandle: true,
-              builder: (_) => _QueueSheet(controller: widget.controller),
-            ),
-          ),
-        ],
-      ),
-      body: SafeArea(
+      extendBodyBehindAppBar: true,
+      body: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness:
+              Theme.of(context).brightness == Brightness.dark
+                  ? Brightness.light
+                  : Brightness.dark,
+          statusBarBrightness:
+              Theme.of(context).brightness == Brightness.dark
+                  ? Brightness.dark
+                  : Brightness.light,
+        ),
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -107,118 +101,148 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
               ],
             ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
+          child: SafeArea(
+            child: Stack(
               children: [
-                Expanded(
-                  child: Center(
-                    child: _ArtworkCard(song: song),
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 36),
+                      Expanded(
+                        child: Center(
+                          child: _ArtworkCard(song: song),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        song.title,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(song.artistLabel,
+                          style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 4),
+                      Text(song.albumLabel,
+                          style: Theme.of(context).textTheme.bodyMedium),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          _MetaChip(icon: Icons.folder, label: song.folderLabel),
+                          _MetaChip(
+                            icon: Icons.history,
+                            label: history == null
+                                ? 'First play'
+                                : '${history!.playCount} plays',
+                          ),
+                          StreamBuilder<Duration>(
+                            stream: widget.controller.player.positionStream,
+                            builder: (context, snapshot) {
+                              final duration = widget.controller.duration;
+                              final position =
+                                  snapshot.data ?? widget.controller.position;
+                              final remaining = duration - position;
+                              return _MetaChip(
+                                icon: Icons.access_time,
+                                label:
+                                    '-${_format(remaining.isNegative ? Duration.zero : remaining)}',
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      _ProgressSection(
+                        controller: widget.controller,
+                        format: _format,
+                      ),
+                      const SizedBox(height: 12),
+                      StreamBuilder<PlayerState>(
+                        stream: widget.controller.player.playerStateStream,
+                        builder: (context, snapshot) {
+                          final playing = snapshot.data?.playing ??
+                              widget.controller.isPlaying;
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                iconSize: 36,
+                                onPressed: widget.controller.hasPrevious
+                                    ? widget.controller.previous
+                                    : null,
+                                icon: const Icon(Icons.skip_previous),
+                              ),
+                              const SizedBox(width: 12),
+                              FilledButton.tonal(
+                                onPressed: widget.controller.playOrPause,
+                                style: FilledButton.styleFrom(
+                                  shape: const CircleBorder(),
+                                  padding: const EdgeInsets.all(18),
+                                ),
+                                child: Icon(
+                                  playing ? Icons.pause : Icons.play_arrow,
+                                  size: 40,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              IconButton(
+                                iconSize: 36,
+                                onPressed: widget.controller.hasNext
+                                    ? widget.controller.next
+                                    : null,
+                                icon: const Icon(Icons.skip_next),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '${widget.controller.currentIndex + 1} / ${widget.controller.queue.length} in queue',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: StreamBuilder<Duration>(
+                          stream: widget.controller.player.positionStream,
+                          builder: (context, snapshot) {
+                            final position =
+                                snapshot.data ?? widget.controller.position;
+                            return _LyricsPanel(
+                              lyrics: lyrics,
+                              activeIndex: _activeLyricIndex(position),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  song.title,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(song.artistLabel,
-                    style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 4),
-                Text(song.albumLabel,
-                    style: Theme.of(context).textTheme.bodyMedium),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    _MetaChip(icon: Icons.folder, label: song.folderLabel),
-                    _MetaChip(
-                      icon: Icons.history,
-                      label: history == null
-                          ? 'First play'
-                          : '${history!.playCount} plays',
-                    ),
-                    StreamBuilder<Duration>(
-                      stream: widget.controller.player.positionStream,
-                      builder: (context, snapshot) {
-                        final duration = widget.controller.duration;
-                        final position =
-                            snapshot.data ?? widget.controller.position;
-                        final remaining = duration - position;
-                        return _MetaChip(
-                          icon: Icons.access_time,
-                          label:
-                              '-${_format(remaining.isNegative ? Duration.zero : remaining)}',
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _ProgressSection(
-                  controller: widget.controller,
-                  format: _format,
-                ),
-                const SizedBox(height: 12),
-                StreamBuilder<PlayerState>(
-                  stream: widget.controller.player.playerStateStream,
-                  builder: (context, snapshot) {
-                    final playing =
-                        snapshot.data?.playing ?? widget.controller.isPlaying;
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        IconButton(
-                          iconSize: 36,
-                          onPressed: widget.controller.hasPrevious
-                              ? widget.controller.previous
-                              : null,
-                          icon: const Icon(Icons.skip_previous),
+                Positioned(
+                  top: 12,
+                  left: 16,
+                  right: 16,
+                  child: Row(
+                    children: [
+                      _CircleTopButton(
+                        icon: Icons.arrow_back,
+                        onPressed: () => Navigator.of(context).maybePop(),
+                      ),
+                      const Spacer(),
+                      _CircleTopButton(
+                        icon: Icons.queue_music,
+                        onPressed: () => showModalBottomSheet<void>(
+                          context: context,
+                          showDragHandle: true,
+                          builder: (_) =>
+                              _QueueSheet(controller: widget.controller),
                         ),
-                        const SizedBox(width: 12),
-                        FilledButton.tonal(
-                          onPressed: widget.controller.playOrPause,
-                          style: FilledButton.styleFrom(
-                            shape: const CircleBorder(),
-                            padding: const EdgeInsets.all(18),
-                          ),
-                          child: Icon(
-                            playing ? Icons.pause : Icons.play_arrow,
-                            size: 40,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        IconButton(
-                          iconSize: 36,
-                          onPressed: widget.controller.hasNext
-                              ? widget.controller.next
-                              : null,
-                          icon: const Icon(Icons.skip_next),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  '${widget.controller.currentIndex + 1} / ${widget.controller.queue.length} in queue',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: StreamBuilder<Duration>(
-                    stream: widget.controller.player.positionStream,
-                    builder: (context, snapshot) {
-                      final position =
-                          snapshot.data ?? widget.controller.position;
-                      return _LyricsPanel(
-                        lyrics: lyrics,
-                        activeIndex: _activeLyricIndex(position),
-                      );
-                    },
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -240,6 +264,36 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
       }
     }
     return active;
+  }
+}
+
+class _CircleTopButton extends StatelessWidget {
+  const _CircleTopButton({
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black.withValues(alpha: 0.28),
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onPressed,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Icon(
+            icon,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+      ),
+    );
   }
 }
 

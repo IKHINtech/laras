@@ -40,8 +40,33 @@ class _LocalPlaylistDetailPageState extends State<LocalPlaylistDetailPage> {
   Future<void> _removeAt(int index) async {
     if (!editable) return;
     final song = songs[index];
+    final confirmed = await _confirmRemoveSong(song);
+    if (!confirmed) return;
     await widget.store!.removeSongFromPlaylist(widget.playlistId!, song.id);
     setState(() => songs.removeAt(index));
+  }
+
+  Future<bool> _confirmRemoveSong(Song song) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Hapus lagu dari playlist?'),
+        content: Text(
+          '"${song.title}" akan dihapus dari playlist ini.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
   }
 
   Future<void> _reorder(int oldIndex, int newIndex) async {
@@ -74,6 +99,7 @@ class _LocalPlaylistDetailPageState extends State<LocalPlaylistDetailPage> {
                       key: ValueKey(song.id),
                       song: song,
                       index: index,
+                      player: widget.player,
                       onTap: () => widget.player.playQueue(songs, index),
                       trailing: IconButton(
                         icon: const Icon(Icons.remove_circle_outline),
@@ -87,6 +113,7 @@ class _LocalPlaylistDetailPageState extends State<LocalPlaylistDetailPage> {
                   itemBuilder: (_, index) => _SongTile(
                     song: songs[index],
                     index: index,
+                    player: widget.player,
                     onTap: () => widget.player.playQueue(songs, index),
                   ),
                 ),
@@ -99,32 +126,151 @@ class _SongTile extends StatelessWidget {
     super.key,
     required this.song,
     required this.index,
+    required this.player,
     required this.onTap,
     this.trailing,
   });
 
   final Song song;
   final int index;
+  final PlayerController player;
   final VoidCallback onTap;
   final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      key: key,
-      leading: song.artworkId == null
-          ? const CircleAvatar(child: Icon(Icons.music_note))
-          : QueryArtworkWidget(
-              id: song.artworkId!,
-              type: ArtworkType.AUDIO,
-              nullArtworkWidget:
-                  const CircleAvatar(child: Icon(Icons.music_note)),
+    final leadingArtwork = song.artworkId == null
+        ? const CircleAvatar(child: Icon(Icons.music_note))
+        : QueryArtworkWidget(
+            id: song.artworkId!,
+            type: ArtworkType.AUDIO,
+            nullArtworkWidget:
+                const CircleAvatar(child: Icon(Icons.music_note)),
+          );
+    return AnimatedBuilder(
+      animation: player,
+      child: leadingArtwork,
+      builder: (context, child) {
+        final theme = Theme.of(context);
+        final isCurrent = player.currentSong?.id == song.id;
+        final activeColor = theme.colorScheme.primary;
+        return ListTile(
+          key: key,
+          tileColor: isCurrent
+              ? activeColor.withValues(alpha: 0.10)
+              : Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          leading: child,
+          title: Text(
+            song.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isCurrent ? activeColor : null,
+              fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
             ),
-      title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle:
-          Text(song.artistLabel, maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: trailing ?? Text('${index + 1}'),
-      onTap: onTap,
+          ),
+          subtitle: Text(
+            song.artistLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isCurrent
+                  ? activeColor.withValues(alpha: 0.82)
+                  : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.78),
+            ),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _NowPlayingIndicator(player: player, songId: song.id),
+              trailing ?? Text('${index + 1}'),
+            ],
+          ),
+          onTap: onTap,
+        );
+      },
+    );
+  }
+}
+
+class _NowPlayingIndicator extends StatelessWidget {
+  const _NowPlayingIndicator({
+    required this.player,
+    required this.songId,
+  });
+
+  final PlayerController player;
+  final String songId;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return AnimatedBuilder(
+      animation: player,
+      builder: (context, child) {
+        final isCurrent = player.currentSong?.id == songId;
+        if (!isCurrent) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: player.isPlaying
+                ? _EqualizerGlyph(
+                    color: theme.colorScheme.primary,
+                    phase: player.position.inMilliseconds ~/ 180,
+                  )
+                : Icon(
+                    Icons.pause_circle,
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                  ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _EqualizerGlyph extends StatelessWidget {
+  const _EqualizerGlyph({
+    required this.color,
+    required this.phase,
+  });
+
+  final Color color;
+  final int phase;
+
+  @override
+  Widget build(BuildContext context) {
+    final patterns = <List<double>>[
+      [0.35, 0.9, 0.55],
+      [0.8, 0.45, 0.95],
+      [0.55, 0.85, 0.4],
+      [0.95, 0.6, 0.75],
+    ];
+    final heights = patterns[phase % patterns.length];
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        for (var i = 0; i < heights.length; i++) ...[
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            width: 3,
+            height: 14 * heights[i],
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          if (i != heights.length - 1) const SizedBox(width: 2),
+        ],
+      ],
     );
   }
 }

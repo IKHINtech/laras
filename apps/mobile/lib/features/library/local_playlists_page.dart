@@ -63,6 +63,29 @@ class _LocalPlaylistsPageState extends State<LocalPlaylistsPage> {
     }
   }
 
+  Future<bool> _confirmDeletePlaylist(LocalPlaylist playlist) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Hapus playlist?'),
+        content: Text(
+          'Playlist "${playlist.name}" akan dihapus dari device ini.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final favoriteSongs = songs
@@ -129,6 +152,8 @@ class _LocalPlaylistsPageState extends State<LocalPlaylistsPage> {
                 trailing: IconButton(
                   icon: const Icon(Icons.delete_outline),
                   onPressed: () async {
+                    final confirmed = await _confirmDeletePlaylist(playlist);
+                    if (!confirmed) return;
                     await widget.store.deletePlaylist(playlist.id);
                     await load();
                   },
