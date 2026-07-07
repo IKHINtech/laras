@@ -32,6 +32,10 @@ class LyricsLoadResult {
 }
 
 class LyricsService {
+  static final RegExp _timestampRegex = RegExp(
+    r'[\[<](\d{2}):(\d{2})(?:[.:](\d{1,3}))?[\]>]',
+  );
+
   Future<LyricsLoadResult> loadLyrics(
     Song song,
     LocalMusicStore store, {
@@ -118,7 +122,7 @@ class LyricsService {
       final metadata = readMetadata(file, getImage: false);
       final lyrics = metadata.lyrics?.trim();
       if (lyrics != null && lyrics.isNotEmpty) {
-        final lrcLike = _parseLrc(lyrics);
+        final lrcLike = _parseMetadataTimedLyrics(lyrics);
         if (lrcLike.isNotEmpty) {
           return LyricsLoadResult(
             lines: lrcLike,
@@ -139,29 +143,44 @@ class LyricsService {
 
   List<LyricLine> _parseLrc(String raw) {
     final lines = <LyricLine>[];
-    final regex = RegExp(r'\[(\d{2}):(\d{2})(?:\.(\d{1,3}))?\]');
 
     for (final source in raw.split('\n')) {
-      final matches = regex.allMatches(source).toList();
+      final matches = _timestampRegex.allMatches(source).toList();
       if (matches.isEmpty) continue;
-      final text = source.replaceAll(regex, '').trim();
+      final text = source.replaceAll(_timestampRegex, '').trim();
 
       for (final match in matches) {
-        final minutes = int.parse(match.group(1)!);
-        final seconds = int.parse(match.group(2)!);
-        final fraction = int.parse((match.group(3) ?? '0').padRight(3, '0'));
         lines.add(
           LyricLine(
-            at: Duration(
-              minutes: minutes,
-              seconds: seconds,
-              milliseconds: fraction,
-            ),
+            at: _timestampToDuration(match),
             text: text.isEmpty ? '...' : text,
             isTimed: true,
           ),
         );
       }
+    }
+
+    lines.sort((a, b) => a.at.compareTo(b.at));
+    return lines;
+  }
+
+  List<LyricLine> _parseMetadataTimedLyrics(String raw) {
+    final matches = _timestampRegex.allMatches(raw).toList();
+    if (matches.isEmpty) return const <LyricLine>[];
+
+    final lines = <LyricLine>[];
+    for (var i = 0; i < matches.length; i++) {
+      final current = matches[i];
+      final nextStart = i + 1 < matches.length ? matches[i + 1].start : raw.length;
+      final text = raw.substring(current.end, nextStart).trim();
+      if (text.isEmpty) continue;
+      lines.add(
+        LyricLine(
+          at: _timestampToDuration(current),
+          text: text,
+          isTimed: true,
+        ),
+      );
     }
 
     lines.sort((a, b) => a.at.compareTo(b.at));
@@ -184,6 +203,17 @@ class LyricsService {
           ),
         )
         .toList();
+  }
+
+  Duration _timestampToDuration(RegExpMatch match) {
+    final minutes = int.parse(match.group(1)!);
+    final seconds = int.parse(match.group(2)!);
+    final fraction = int.parse((match.group(3) ?? '0').padRight(3, '0'));
+    return Duration(
+      minutes: minutes,
+      seconds: seconds,
+      milliseconds: fraction,
+    );
   }
 }
 

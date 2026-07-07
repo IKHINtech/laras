@@ -463,7 +463,7 @@ class _QueueSheet extends StatelessWidget {
   }
 }
 
-class _LyricsPanel extends StatelessWidget {
+class _LyricsPanel extends StatefulWidget {
   const _LyricsPanel({
     required this.lyrics,
     required this.activeIndex,
@@ -475,8 +475,45 @@ class _LyricsPanel extends StatelessWidget {
   final LyricsSource? source;
 
   @override
+  State<_LyricsPanel> createState() => _LyricsPanelState();
+}
+
+class _LyricsPanelState extends State<_LyricsPanel> {
+  final ScrollController _scrollController = ScrollController();
+  final Map<int, GlobalKey> _lineKeys = <int, GlobalKey>{};
+  int _lastScrolledIndex = -1;
+
+  @override
+  void didUpdateWidget(covariant _LyricsPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.activeIndex >= 0 && widget.activeIndex != _lastScrolledIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToActive());
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToActive() {
+    if (!mounted) return;
+    final key = _lineKeys[widget.activeIndex];
+    final context = key?.currentContext;
+    if (context == null) return;
+    _lastScrolledIndex = widget.activeIndex;
+    Scrollable.ensureVisible(
+      context,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+      alignment: 0.38,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (lyrics.isEmpty) {
+    if (widget.lyrics.isEmpty) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(20),
@@ -495,13 +532,13 @@ class _LyricsPanel extends StatelessWidget {
       ),
       child: Column(
         children: [
-          if (source != null)
+          if (widget.source != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
               child: Align(
                 alignment: Alignment.centerRight,
                 child: Text(
-                  'Source: ${source!.label}',
+                  'Source: ${widget.source!.label}',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -510,14 +547,17 @@ class _LyricsPanel extends StatelessWidget {
             ),
           Expanded(
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              itemCount: lyrics.length,
+              itemCount: widget.lyrics.length,
               itemBuilder: (_, index) {
-                final active = index == activeIndex;
+                final active = index == widget.activeIndex;
+                final key = _lineKeys.putIfAbsent(index, GlobalKey.new);
                 return Padding(
+                  key: key,
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Text(
-                    lyrics[index].text,
+                    widget.lyrics[index].text,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           fontWeight: active ? FontWeight.bold : FontWeight.w400,
