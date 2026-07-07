@@ -15,7 +15,7 @@ on:
       - "apps/mobile/**"
       - ".github/workflows/flutter-ci.yml"
 
-workflow_dispatch:
+  workflow_dispatch:
 
 jobs:
   flutter-ci:
@@ -62,7 +62,7 @@ jobs:
       - name: Build debug APK
         run: flutter build apk --debug
 
-      - name: Rename debug APK
+      - name: Prepare debug APK
         run: |
           mkdir -p release
           cp build/app/outputs/flutter-apk/app-debug.apk release/laras-debug.apk
