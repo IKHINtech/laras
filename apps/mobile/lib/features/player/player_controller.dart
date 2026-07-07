@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../library/local_music_store.dart';
 import '../library/song.dart';
+import 'home_widget_sync.dart';
 
 class PlayerController extends ChangeNotifier {
   PlayerController({required this.store}) {
@@ -20,9 +21,15 @@ class PlayerController extends ChangeNotifier {
           currentIndex = next;
           notifyListeners();
         }
+        _scheduleWidgetSync();
       }),
     );
-    _subs.add(player.playerStateStream.listen((_) => notifyListeners()));
+    _subs.add(
+      player.playerStateStream.listen((_) {
+        notifyListeners();
+        _scheduleWidgetSync();
+      }),
+    );
     _subs.add(player.durationStream.listen((_) => notifyListeners()));
     _subs.add(player.positionStream.listen((_) => notifyListeners()));
     _subs.add(
@@ -55,6 +62,7 @@ class PlayerController extends ChangeNotifier {
     );
     _configureAudioSession();
     _restoreSleepTimer();
+    _scheduleWidgetSync();
   }
 
   final LocalMusicStore store;
@@ -66,7 +74,10 @@ class PlayerController extends ChangeNotifier {
   int? androidAudioSessionId;
   DateTime? sleepTimerEndsAt;
   Timer? _sleepTimerTicker;
+  Timer? _widgetSyncDebounce;
   String? _lastTrackedSongId;
+  String? _lastWidgetSongId;
+  bool? _lastWidgetPlaying;
   double _preDuckVolume = 1.0;
 
   Song? get currentSong => queue.isEmpty ? null : queue[currentIndex];
@@ -99,6 +110,7 @@ class PlayerController extends ChangeNotifier {
       incrementPlayCount: true,
     );
     await player.play();
+    _scheduleWidgetSync();
     notifyListeners();
   }
 
@@ -119,6 +131,7 @@ class PlayerController extends ChangeNotifier {
     if (index < 0 || index >= queue.length) return;
     await player.seek(Duration.zero, index: index);
     currentIndex = index;
+    _scheduleWidgetSync();
     notifyListeners();
   }
 
@@ -229,6 +242,32 @@ class PlayerController extends ChangeNotifier {
     });
   }
 
+  void _scheduleWidgetSync() {
+    _widgetSyncDebounce?.cancel();
+    _widgetSyncDebounce = Timer(
+      const Duration(milliseconds: 180),
+      () => unawaited(_syncHomeWidget()),
+    );
+  }
+
+  Future<void> _syncHomeWidget() async {
+    final song = currentSong;
+    final playing = isPlaying;
+    if (_lastWidgetSongId == song?.id && _lastWidgetPlaying == playing) {
+      return;
+    }
+
+    _lastWidgetSongId = song?.id;
+    _lastWidgetPlaying = playing;
+
+    final artworkUri = song == null ? null : await _artUri(song);
+    await LarasHomeWidgetSync.sync(
+      song: song,
+      isPlaying: playing,
+      artworkPath: artworkUri?.toFilePath(),
+    );
+  }
+
   Future<AudioSource> _createSource(Song song, {String? token}) async {
     return AudioSource.uri(
       song.streamUrl.startsWith('/')
@@ -278,6 +317,7 @@ class PlayerController extends ChangeNotifier {
   Future<void> close() async {
     await _persistCurrentPlayback();
     _sleepTimerTicker?.cancel();
+    _widgetSyncDebounce?.cancel();
     for (final sub in _subs) {
       await sub.cancel();
     }

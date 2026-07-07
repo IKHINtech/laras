@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import '../core/home_widget_command_bus.dart';
 import '../core/theme_controller.dart';
 import '../core/api_client.dart';
 import '../core/auth_store.dart';
@@ -8,6 +11,7 @@ import 'library/local_music_store.dart';
 import 'library/local_playlists_page.dart';
 import 'player/player_controller.dart';
 import 'player/mini_player.dart';
+import 'player/now_playing_page.dart';
 import 'settings/settings_page.dart';
 
 class HomeShell extends StatefulWidget {
@@ -31,6 +35,7 @@ class _HomeShellState extends State<HomeShell> {
   late int index;
   late final PlayerController player;
   late final LocalMusicStore localStore;
+  StreamSubscription<Uri>? _homeWidgetCommandSub;
 
   @override
   void initState() {
@@ -38,12 +43,44 @@ class _HomeShellState extends State<HomeShell> {
     index = widget.initialIndex;
     localStore = LocalMusicStore();
     player = PlayerController(store: localStore);
+    _homeWidgetCommandSub = HomeWidgetCommandBus.stream.listen(
+      _handleHomeWidgetCommand,
+    );
   }
 
   @override
   void dispose() {
+    _homeWidgetCommandSub?.cancel();
     player.close();
     super.dispose();
+  }
+
+  Future<void> _handleHomeWidgetCommand(Uri uri) async {
+    if (uri.scheme != 'laras') return;
+
+    switch (uri.host) {
+      case 'now-playing':
+        if (!mounted || player.currentSong == null) return;
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => NowPlayingPage(
+              controller: player,
+              store: localStore,
+            ),
+          ),
+        );
+        return;
+      case 'player':
+        final action = uri.queryParameters['action'];
+        if (action == 'previous') {
+          await player.previous();
+        } else if (action == 'play-pause') {
+          await player.playOrPause();
+        } else if (action == 'next') {
+          await player.next();
+        }
+        return;
+    }
   }
 
   @override

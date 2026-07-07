@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'core/app_settings_store.dart';
 import 'core/api_client.dart';
 import 'core/auth_store.dart';
+import 'core/home_widget_command_bus.dart';
 import 'core/theme_controller.dart';
 import 'features/auth/welcome_page.dart';
 import 'features/home_shell.dart';
@@ -14,6 +16,9 @@ const apiBaseUrl = String.fromEnvironment(
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  HomeWidget.registerInteractivityCallback(_homeWidgetBackgroundCallback);
+  HomeWidget.initiallyLaunchedFromHomeWidget().then(HomeWidgetCommandBus.emit);
+  HomeWidget.widgetClicked.listen(HomeWidgetCommandBus.emit);
   await JustAudioBackground.init(
     androidNotificationChannelId: 'id.my.sarikhin.laras.audio',
     androidNotificationChannelName: 'Laras Playback',
@@ -27,6 +32,11 @@ Future<void> main() async {
   final themeController = ThemeController(AppSettingsStore());
   await themeController.load();
   runApp(LarasApp(authStore: authStore, themeController: themeController));
+}
+
+@pragma('vm:entry-point')
+Future<void> _homeWidgetBackgroundCallback(Uri? uri) async {
+  HomeWidgetCommandBus.emit(uri);
 }
 
 class LarasApp extends StatefulWidget {
