@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../../core/app_icon_controller.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
 import '../../core/theme_controller.dart';
@@ -14,11 +15,13 @@ class ServerLibraryPage extends StatefulWidget {
     required this.api,
     required this.authStore,
     required this.themeController,
+    required this.appIconController,
     required this.player,
   });
   final ApiClient api;
   final AuthStore authStore;
   final ThemeController themeController;
+  final AppIconController appIconController;
   final PlayerController player;
 
   @override
@@ -90,6 +93,7 @@ class _ServerLibraryPageState extends State<ServerLibraryPage> {
                               api: widget.api,
                               authStore: widget.authStore,
                               themeController: widget.themeController,
+                              appIconController: widget.appIconController,
                             ),
                           ),
                         )
@@ -105,6 +109,7 @@ class _ServerLibraryPageState extends State<ServerLibraryPage> {
                               api: widget.api,
                               authStore: widget.authStore,
                               themeController: widget.themeController,
+                              appIconController: widget.appIconController,
                               initialRegisterMode: true,
                             ),
                           ),

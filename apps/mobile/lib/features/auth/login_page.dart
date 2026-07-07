@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/app_icon_controller.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
 import '../../core/theme_controller.dart';
@@ -10,11 +11,13 @@ class LoginPage extends StatefulWidget {
     required this.api,
     required this.authStore,
     required this.themeController,
+    required this.appIconController,
     this.initialRegisterMode = false,
   });
   final ApiClient api;
   final AuthStore authStore;
   final ThemeController themeController;
+  final AppIconController appIconController;
   final bool initialRegisterMode;
 
   @override
@@ -48,6 +51,7 @@ class _LoginPageState extends State<LoginPage> {
             api: widget.api,
             authStore: widget.authStore,
             themeController: widget.themeController,
+            appIconController: widget.appIconController,
             initialIndex: 1,
           ),
         ),

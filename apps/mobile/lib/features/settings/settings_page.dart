@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_icon_controller.dart';
 import '../../core/equalizer_bridge.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
@@ -15,6 +16,7 @@ class SettingsPage extends StatefulWidget {
     required this.authStore,
     required this.player,
     required this.themeController,
+    required this.appIconController,
     required this.onLogout,
   });
 
@@ -23,6 +25,7 @@ class SettingsPage extends StatefulWidget {
   final AuthStore authStore;
   final PlayerController player;
   final ThemeController themeController;
+  final AppIconController appIconController;
   final Future<void> Function() onLogout;
 
   @override
@@ -43,12 +46,14 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     widget.player.addListener(_refresh);
     widget.themeController.addListener(_refresh);
+    widget.appIconController.addListener(_refresh);
   }
 
   @override
   void dispose() {
     widget.player.removeListener(_refresh);
     widget.themeController.removeListener(_refresh);
+    widget.appIconController.removeListener(_refresh);
     super.dispose();
   }
 
@@ -74,6 +79,20 @@ class _SettingsPageState extends State<SettingsPage> {
           ok
               ? 'Opened Android equalizer'
               : 'Equalizer unavailable. Start playback first.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _changeAppIcon(AppIconVariant variant) async {
+    final changed = await widget.appIconController.setVariant(variant);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          changed
+              ? 'Launcher icon switched to ${variant.label}.'
+              : 'Gagal mengganti icon launcher.',
         ),
       ),
     );
@@ -135,6 +154,37 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               )
               .toList(),
+        ),
+        const SizedBox(height: 20),
+        Text('App Icon', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Card(
+          child: RadioGroup<AppIconVariant>(
+            groupValue: widget.appIconController.currentVariant,
+            onChanged: (value) {
+              if (value != null) {
+                _changeAppIcon(value);
+              }
+            },
+            child: Column(
+              children: AppIconVariant.values
+                  .map(
+                    (variant) => RadioListTile<AppIconVariant>(
+                      value: variant,
+                      title: Text(variant.label),
+                      subtitle: Text(
+                        switch (variant) {
+                          AppIconVariant.defaultIcon => 'Icon standar Laras',
+                          AppIconVariant.dark => 'Versi gelap dan lebih subtle',
+                          AppIconVariant.neon =>
+                            'Versi cerah dengan aksen neon',
+                        },
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
         ),
         const SizedBox(height: 20),
         Text('Sleep Timer', style: Theme.of(context).textTheme.titleMedium),
@@ -209,6 +259,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   api: widget.api,
                   authStore: widget.authStore,
                   themeController: widget.themeController,
+                  appIconController: widget.appIconController,
                 ),
               ),
             ),
@@ -223,6 +274,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   api: widget.api,
                   authStore: widget.authStore,
                   themeController: widget.themeController,
+                  appIconController: widget.appIconController,
                   initialRegisterMode: true,
                 ),
               ),

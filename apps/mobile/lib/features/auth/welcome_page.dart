@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/app_icon_controller.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
 import '../../core/theme_controller.dart';
@@ -11,11 +12,13 @@ class WelcomePage extends StatelessWidget {
     required this.api,
     required this.authStore,
     required this.themeController,
+    required this.appIconController,
   });
 
   final ApiClient api;
   final AuthStore authStore;
   final ThemeController themeController;
+  final AppIconController appIconController;
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +58,7 @@ class WelcomePage extends StatelessWidget {
                             api: api,
                             authStore: authStore,
                             themeController: themeController,
+                            appIconController: appIconController,
                           ),
                         ),
                       );
@@ -70,6 +74,7 @@ class WelcomePage extends StatelessWidget {
                           api: api,
                           authStore: authStore,
                           themeController: themeController,
+                          appIconController: appIconController,
                         ),
                       ),
                     ),
@@ -83,6 +88,7 @@ class WelcomePage extends StatelessWidget {
                           api: api,
                           authStore: authStore,
                           themeController: themeController,
+                          appIconController: appIconController,
                           initialRegisterMode: true,
                         ),
                       ),

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../core/app_icon_controller.dart';
 import '../core/home_widget_command_bus.dart';
 import '../core/theme_controller.dart';
 import '../core/api_client.dart';
@@ -20,11 +21,13 @@ class HomeShell extends StatefulWidget {
     required this.api,
     required this.authStore,
     required this.themeController,
+    required this.appIconController,
     this.initialIndex = 0,
   });
   final ApiClient api;
   final AuthStore authStore;
   final ThemeController themeController;
+  final AppIconController appIconController;
   final int initialIndex;
 
   @override
@@ -92,6 +95,7 @@ class _HomeShellState extends State<HomeShell> {
         api: widget.api,
         authStore: widget.authStore,
         themeController: widget.themeController,
+        appIconController: widget.appIconController,
         player: player,
       ),
       LocalPlaylistsPage(player: player, store: localStore),
@@ -101,6 +105,7 @@ class _HomeShellState extends State<HomeShell> {
         authStore: widget.authStore,
         player: player,
         themeController: widget.themeController,
+        appIconController: widget.appIconController,
         onLogout: () async {
           await widget.authStore.clear();
           if (mounted) setState(() {});
