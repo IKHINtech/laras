@@ -305,19 +305,56 @@ class LocalMusicStore {
       limit: 1,
     );
     if (rows.isEmpty) return null;
-    return rows.first['lrc_path'] as String;
+    final path = rows.first['lrc_path'] as String;
+    return path.isEmpty ? null : path;
   }
 
-  Future<void> saveLyricsPath(String songId, String path) async {
+  Future<LocalLyricsCache?> loadLyricsCache(String songId) async {
+    final db = await _db;
+    final rows = await db.query(
+      'local_lyrics_index',
+      columns: ['lrc_path', 'source', 'updated_at_epoch_ms'],
+      where: 'song_id = ?',
+      whereArgs: [songId],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    final path = rows.first['lrc_path'] as String;
+    return LocalLyricsCache(
+      path: path.isEmpty ? null : path,
+      source: rows.first['source'] as String? ?? 'lrc',
+      updatedAtEpochMs: rows.first['updated_at_epoch_ms'] as int? ?? 0,
+    );
+  }
+
+  Future<void> saveLyricsCache({
+    required String songId,
+    required String source,
+    String? path,
+  }) async {
     final db = await _db;
     await db.insert(
       'local_lyrics_index',
       {
         'song_id': songId,
-        'lrc_path': path,
+        'lrc_path': path ?? '',
+        'source': source,
         'updated_at_epoch_ms': DateTime.now().millisecondsSinceEpoch,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> saveLyricsPath(String songId, String path) async {
+    await saveLyricsCache(songId: songId, source: 'lrc', path: path);
+  }
+
+  Future<void> clearLyricsCache(String songId) async {
+    final db = await _db;
+    await db.delete(
+      'local_lyrics_index',
+      where: 'song_id = ?',
+      whereArgs: [songId],
     );
   }
 
@@ -508,4 +545,16 @@ class PlaybackHistory {
   final int lastPositionMs;
   final DateTime playedAt;
   final int playCount;
+}
+
+class LocalLyricsCache {
+  const LocalLyricsCache({
+    required this.path,
+    required this.source,
+    required this.updatedAtEpochMs,
+  });
+
+  final String? path;
+  final String source;
+  final int updatedAtEpochMs;
 }

@@ -13,7 +13,7 @@ class LocalDatabase {
     final dbPath = await getDatabasesPath();
     _db = await openDatabase(
       '$dbPath/laras_local.db',
-      version: 2,
+      version: 3,
       onCreate: (db, version) async => _createSchema(db),
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -22,6 +22,12 @@ class LocalDatabase {
               key TEXT PRIMARY KEY,
               value TEXT NOT NULL
             )
+          ''');
+        }
+        if (oldVersion < 3) {
+          await db.execute('''
+            ALTER TABLE local_lyrics_index
+            ADD COLUMN source TEXT NOT NULL DEFAULT 'lrc'
           ''');
         }
       },
@@ -80,7 +86,8 @@ class LocalDatabase {
     batch.execute('''
       CREATE TABLE local_lyrics_index (
         song_id TEXT PRIMARY KEY,
-        lrc_path TEXT NOT NULL,
+        lrc_path TEXT NOT NULL DEFAULT '',
+        source TEXT NOT NULL DEFAULT 'lrc',
         updated_at_epoch_ms INTEGER NOT NULL DEFAULT 0
       )
     ''');

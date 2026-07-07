@@ -49,7 +49,7 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
     }
   }
 
-  Future<void> _loadLyrics() async {
+  Future<void> _loadLyrics({bool forceReload = false}) async {
     final song = widget.controller.currentSong;
     loadedSongId = song?.id;
     if (song == null) {
@@ -59,7 +59,14 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
       if (mounted) setState(() {});
       return;
     }
-    final result = await lyricsService.loadLyrics(song, widget.store);
+    if (forceReload) {
+      await widget.store.clearLyricsCache(song.id);
+    }
+    final result = await lyricsService.loadLyrics(
+      song,
+      widget.store,
+      forceReload: forceReload,
+    );
     lyrics = result.lines;
     lyricsSource = result.source;
     history = await widget.store.loadPlaybackHistory(song.id);
@@ -238,6 +245,11 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                         onPressed: () => Navigator.of(context).maybePop(),
                       ),
                       const Spacer(),
+                      _CircleTopButton(
+                        icon: Icons.refresh,
+                        onPressed: () => _loadLyrics(forceReload: true),
+                      ),
+                      const SizedBox(width: 8),
                       _CircleTopButton(
                         icon: Icons.queue_music,
                         onPressed: () => showModalBottomSheet<void>(

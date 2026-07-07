@@ -12,6 +12,13 @@ enum LyricsSource {
   const LyricsSource(this.label);
 
   final String label;
+
+  static LyricsSource? fromName(String? value) {
+    for (final source in LyricsSource.values) {
+      if (source.name == value) return source;
+    }
+    return null;
+  }
 }
 
 class LyricsLoadResult {
@@ -27,33 +34,55 @@ class LyricsLoadResult {
 class LyricsService {
   Future<LyricsLoadResult> loadLyrics(
     Song song,
-    LocalMusicStore store,
-  ) async {
+    LocalMusicStore store, {
+    bool forceReload = false,
+  }) async {
     if (!song.isLocal || song.filePath.isEmpty) {
       return const LyricsLoadResult(lines: <LyricLine>[]);
     }
 
-    final cached = await store.loadLyricsPath(song.id);
-    if (cached != null) {
-      final file = File(cached);
-      if (await file.exists()) {
-        return LyricsLoadResult(
-          lines: _parseLrc(await file.readAsString()),
-          source: LyricsSource.lrc,
-        );
+    if (!forceReload) {
+      final cached = await store.loadLyricsCache(song.id);
+      if (cached != null) {
+        final source = LyricsSource.fromName(cached.source);
+        if (source == LyricsSource.lrc && cached.path != null) {
+          final file = File(cached.path!);
+          if (await file.exists()) {
+            return LyricsLoadResult(
+              lines: _parseLrc(await file.readAsString()),
+              source: LyricsSource.lrc,
+            );
+          }
+        }
+
+        if (source == LyricsSource.metadata) {
+          final result = await _loadMetadataLyrics(song);
+          if (result.lines.isNotEmpty) return result;
+        }
       }
     }
 
     final found = await _findLyricsPath(song);
     if (found != null) {
-      await store.saveLyricsPath(song.id, found);
+      await store.saveLyricsCache(
+        songId: song.id,
+        source: LyricsSource.lrc.name,
+        path: found,
+      );
       return LyricsLoadResult(
         lines: _parseLrc(await File(found).readAsString()),
         source: LyricsSource.lrc,
       );
     }
 
-    return _loadMetadataLyrics(song);
+    final metadataResult = await _loadMetadataLyrics(song);
+    if (metadataResult.lines.isNotEmpty) {
+      await store.saveLyricsCache(
+        songId: song.id,
+        source: LyricsSource.metadata.name,
+      );
+    }
+    return metadataResult;
   }
 
   Future<String?> _findLyricsPath(Song song) async {
@@ -81,12 +110,21 @@ class LyricsService {
 
   Future<LyricsLoadResult> _loadMetadataLyrics(Song song) async {
     final file = File(song.filePath);
-    if (!await file.exists()) return const LyricsLoadResult(lines: <LyricLine>[]);
+    if (!await file.exists()) {
+      return const LyricsLoadResult(lines: <LyricLine>[]);
+    }
 
     try {
       final metadata = readMetadata(file, getImage: false);
       final lyrics = metadata.lyrics?.trim();
       if (lyrics != null && lyrics.isNotEmpty) {
+        final lrcLike = _parseLrc(lyrics);
+        if (lrcLike.isNotEmpty) {
+          return LyricsLoadResult(
+            lines: lrcLike,
+            source: LyricsSource.metadata,
+          );
+        }
         return LyricsLoadResult(
           lines: _parseMetadataText(lyrics),
           source: LyricsSource.metadata,
