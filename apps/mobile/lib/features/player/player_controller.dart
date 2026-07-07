@@ -314,6 +314,8 @@ class PlayerController extends ChangeNotifier {
     }
   }
 
+  Future<Uri?> resolveArtworkUri(Song song) => _artUri(song);
+
   Future<void> close() async {
     await _persistCurrentPlayback();
     _sleepTimerTicker?.cancel();
