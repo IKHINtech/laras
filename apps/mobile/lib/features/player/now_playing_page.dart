@@ -664,19 +664,16 @@ class _LyricsCardShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _LyricsThemePalette.fromTheme(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(26),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF6C3548),
-            Color(0xFF542A3B),
-            Color(0xFF3D1D2A),
-          ],
+          colors: palette.cardGradient,
         ),
         boxShadow: [
           BoxShadow(
@@ -712,7 +709,7 @@ class _LyricsCardShell extends StatelessWidget {
               height: 128,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.05),
+                color: palette.glowStrong,
               ),
             ),
           ),
@@ -724,7 +721,7 @@ class _LyricsCardShell extends StatelessWidget {
               height: 156,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.035),
+                color: palette.glowSoft,
               ),
             ),
           ),
@@ -752,19 +749,16 @@ class _LyricsDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = _LyricsThemePalette.fromTheme(context);
     return Scaffold(
       body: Stack(
         children: [
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF6C3548),
-                  Color(0xFF542A3B),
-                  Color(0xFF2F1823),
-                ],
+                colors: palette.detailGradient,
               ),
             ),
           ),
@@ -781,10 +775,7 @@ class _LyricsDetailPage extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    const Color(0xFF7F4459).withValues(alpha: 0.18),
-                    const Color(0xFF2A121C).withValues(alpha: 0.86),
-                  ],
+                  colors: palette.detailOverlay,
                 ),
               ),
             ),
@@ -907,6 +898,61 @@ class _LyricsDetailPage extends StatelessWidget {
       }
     }
     return active;
+  }
+}
+
+class _LyricsThemePalette {
+  const _LyricsThemePalette({
+    required this.cardGradient,
+    required this.detailGradient,
+    required this.detailOverlay,
+    required this.glowStrong,
+    required this.glowSoft,
+  });
+
+  final List<Color> cardGradient;
+  final List<Color> detailGradient;
+  final List<Color> detailOverlay;
+  final Color glowStrong;
+  final Color glowSoft;
+
+  factory _LyricsThemePalette.fromTheme(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final top = Color.alphaBlend(
+      scheme.primary.withValues(alpha: 0.26),
+      scheme.primaryContainer,
+    );
+    final mid = Color.alphaBlend(
+      scheme.secondary.withValues(alpha: 0.18),
+      scheme.surfaceContainerHigh,
+    );
+    final bottom = Color.alphaBlend(
+      Colors.black.withValues(alpha: 0.42),
+      scheme.surface,
+    );
+    final detailTop = Color.alphaBlend(
+      scheme.primary.withValues(alpha: 0.3),
+      scheme.primaryContainer,
+    );
+    final detailMid = Color.alphaBlend(
+      scheme.secondary.withValues(alpha: 0.22),
+      scheme.surfaceContainer,
+    );
+    final detailBottom = Color.alphaBlend(
+      Colors.black.withValues(alpha: 0.58),
+      scheme.surface,
+    );
+    return _LyricsThemePalette(
+      cardGradient: [top, mid, bottom],
+      detailGradient: [detailTop, detailMid, detailBottom],
+      detailOverlay: [
+        scheme.primary.withValues(alpha: 0.14),
+        Colors.black.withValues(alpha: 0.42),
+        Colors.black.withValues(alpha: 0.68),
+      ],
+      glowStrong: scheme.onSurface.withValues(alpha: 0.06),
+      glowSoft: scheme.onSurface.withValues(alpha: 0.035),
+    );
   }
 }
 
