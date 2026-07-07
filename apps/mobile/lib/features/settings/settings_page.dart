@@ -146,59 +146,58 @@ class _SettingsPageState extends State<SettingsPage> {
           runSpacing: 10,
           children: _seedOptions
               .map(
-                (color) => InkWell(
-                  onTap: () => theme.setSeedColor(color),
-                  borderRadius: BorderRadius.circular(999),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: theme.seedColor.toARGB32() == color.toARGB32()
-                            ? Theme.of(context).colorScheme.onSurface
-                            : Colors.transparent,
-                        width: 3,
-                      ),
-                    ),
+            (color) => InkWell(
+              onTap: () => theme.setSeedColor(color),
+              borderRadius: BorderRadius.circular(999),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: theme.seedColor.toARGB32() == color.toARGB32()
+                        ? Theme.of(context).colorScheme.onSurface
+                        : Colors.transparent,
+                    width: 3,
                   ),
                 ),
-              )
+              ),
+            ),
+          )
               .followedBy([
-                InkWell(
-                  onTap: _openSeedColorPicker,
-                  borderRadius: BorderRadius.circular(999),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: SweepGradient(
-                        colors: [
-                          Colors.red,
-                          Colors.orange,
-                          Colors.yellow,
-                          Colors.green,
-                          Colors.cyan,
-                          Colors.blue,
-                          Colors.purple,
-                          Colors.red,
-                        ],
-                      ),
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.palette_outlined,
-                      size: 18,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
+            InkWell(
+              onTap: _openSeedColorPicker,
+              borderRadius: BorderRadius.circular(999),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: SweepGradient(
+                    colors: [
+                      Colors.red,
+                      Colors.orange,
+                      Colors.yellow,
+                      Colors.green,
+                      Colors.cyan,
+                      Colors.blue,
+                      Colors.purple,
+                      Colors.red,
+                    ],
+                  ),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
                   ),
                 ),
-              ])
-              .toList(),
+                child: Icon(
+                  Icons.palette_outlined,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
+              ),
+            ),
+          ]).toList(),
         ),
         const SizedBox(height: 20),
         Text('App Icon', style: Theme.of(context).textTheme.titleMedium),
@@ -446,7 +445,8 @@ class _ColorSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final normalized = max == 1 ? value.toStringAsFixed(2) : value.round().toString();
+    final normalized =
+        max == 1 ? value.toStringAsFixed(2) : value.round().toString();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

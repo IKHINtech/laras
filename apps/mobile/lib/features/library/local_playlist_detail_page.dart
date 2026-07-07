@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
@@ -139,14 +141,7 @@ class _SongTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final leadingArtwork = song.artworkId == null
-        ? const CircleAvatar(child: Icon(Icons.music_note))
-        : QueryArtworkWidget(
-            id: song.artworkId!,
-            type: ArtworkType.AUDIO,
-            nullArtworkWidget:
-                const CircleAvatar(child: Icon(Icons.music_note)),
-          );
+    final leadingArtwork = _PlaylistArtwork(artworkId: song.artworkId);
     return AnimatedBuilder(
       animation: player,
       child: leadingArtwork,
@@ -192,6 +187,66 @@ class _SongTile extends StatelessWidget {
           onTap: onTap,
         );
       },
+    );
+  }
+}
+
+class _PlaylistArtwork extends StatefulWidget {
+  const _PlaylistArtwork({required this.artworkId});
+
+  final int? artworkId;
+
+  @override
+  State<_PlaylistArtwork> createState() => _PlaylistArtworkState();
+}
+
+class _PlaylistArtworkState extends State<_PlaylistArtwork> {
+  static final OnAudioQuery _audioQuery = OnAudioQuery();
+
+  Uint8List? _artworkBytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadArtwork();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PlaylistArtwork oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.artworkId != widget.artworkId) {
+      _artworkBytes = null;
+      _loadArtwork();
+    }
+  }
+
+  Future<void> _loadArtwork() async {
+    final artworkId = widget.artworkId;
+    if (artworkId == null) return;
+    try {
+      final bytes = await _audioQuery.queryArtwork(
+        artworkId,
+        ArtworkType.AUDIO,
+        size: 200,
+        quality: 70,
+        format: ArtworkFormat.JPEG,
+      );
+      if (!mounted || widget.artworkId != artworkId) return;
+      setState(() => _artworkBytes = bytes);
+    } catch (_) {
+      if (!mounted || widget.artworkId != artworkId) return;
+      setState(() => _artworkBytes = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = _artworkBytes;
+    if (widget.artworkId == null || bytes == null || bytes.isEmpty) {
+      return const CircleAvatar(child: Icon(Icons.music_note));
+    }
+    return CircleAvatar(
+      backgroundImage: MemoryImage(bytes),
     );
   }
 }
