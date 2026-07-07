@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -245,15 +247,10 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
 
   Widget _buildSongTile(Song song, List<Song> sourceSongs) {
     final isFavorite = favoriteIds.contains(song.id);
-    final leadingArtwork = song.artworkId == null
-        ? const CircleAvatar(child: Icon(Icons.music_note))
-        : QueryArtworkWidget(
-            id: song.artworkId!,
-            type: ArtworkType.AUDIO,
-            nullArtworkWidget: const CircleAvatar(
-              child: Icon(Icons.music_note),
-            ),
-          );
+    final leadingArtwork = _LibraryArtworkAvatar(
+      artworkId: song.artworkId,
+      fallbackIcon: Icons.music_note,
+    );
     return AnimatedBuilder(
       animation: widget.player,
       child: leadingArtwork,
@@ -349,13 +346,10 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
         final bucket = buckets[i];
         final coverSong = bucket.songs.first;
         return ListTile(
-          leading: coverSong.artworkId == null
-              ? CircleAvatar(child: Icon(icon))
-              : QueryArtworkWidget(
-                  id: coverSong.artworkId!,
-                  type: ArtworkType.AUDIO,
-                  nullArtworkWidget: CircleAvatar(child: Icon(icon)),
-                ),
+          leading: _LibraryArtworkAvatar(
+            artworkId: coverSong.artworkId,
+            fallbackIcon: icon,
+          ),
           title: Text(
             bucket.label,
             maxLines: 1,
@@ -691,11 +685,10 @@ class _CollageTile extends StatelessWidget {
                       .surfaceContainerHighest
                       .withValues(alpha: 0.45),
                 )
-              : QueryArtworkWidget(
-                  id: song!.artworkId!,
-                  type: ArtworkType.AUDIO,
-                  artworkFit: BoxFit.cover,
-                  nullArtworkWidget: Container(
+              : _LibraryArtworkRect(
+                  artworkId: song!.artworkId,
+                  borderRadius: BorderRadius.circular(18),
+                  fallback: Container(
                     color: Theme.of(context)
                         .colorScheme
                         .surfaceContainerHighest
@@ -820,15 +813,10 @@ class _BucketSongsPage extends StatelessWidget {
         itemBuilder: (_, i) {
           final song = songs[i];
           final isFavorite = favoriteIds.contains(song.id);
-          final leadingArtwork = song.artworkId == null
-              ? const CircleAvatar(child: Icon(Icons.music_note))
-              : QueryArtworkWidget(
-                  id: song.artworkId!,
-                  type: ArtworkType.AUDIO,
-                  nullArtworkWidget: const CircleAvatar(
-                    child: Icon(Icons.music_note),
-                  ),
-                );
+          final leadingArtwork = _LibraryArtworkAvatar(
+            artworkId: song.artworkId,
+            fallbackIcon: Icons.music_note,
+          );
           return AnimatedBuilder(
             animation: player,
             child: leadingArtwork,
@@ -894,6 +882,150 @@ class _BucketSongsPage extends StatelessWidget {
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class _LibraryArtworkStore {
+  static final OnAudioQuery query = OnAudioQuery();
+  static final Map<int, Uint8List> cache = <int, Uint8List>{};
+}
+
+class _LibraryArtworkAvatar extends StatefulWidget {
+  const _LibraryArtworkAvatar({
+    required this.artworkId,
+    required this.fallbackIcon,
+  });
+
+  final int? artworkId;
+  final IconData fallbackIcon;
+
+  @override
+  State<_LibraryArtworkAvatar> createState() => _LibraryArtworkAvatarState();
+}
+
+class _LibraryArtworkAvatarState extends State<_LibraryArtworkAvatar> {
+  Uint8List? _bytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant _LibraryArtworkAvatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.artworkId != widget.artworkId) {
+      _bytes = null;
+      _load();
+    }
+  }
+
+  Future<void> _load() async {
+    final artworkId = widget.artworkId;
+    if (artworkId == null) return;
+    final cached = _LibraryArtworkStore.cache[artworkId];
+    if (cached != null) {
+      setState(() => _bytes = cached);
+      return;
+    }
+    try {
+      final bytes = await _LibraryArtworkStore.query.queryArtwork(
+        artworkId,
+        ArtworkType.AUDIO,
+        size: 200,
+        quality: 70,
+        format: ArtworkFormat.JPEG,
+      );
+      if (!mounted || widget.artworkId != artworkId || bytes == null || bytes.isEmpty) {
+        return;
+      }
+      _LibraryArtworkStore.cache[artworkId] = bytes;
+      setState(() => _bytes = bytes);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = _bytes;
+    if (widget.artworkId == null || bytes == null || bytes.isEmpty) {
+      return CircleAvatar(child: Icon(widget.fallbackIcon));
+    }
+    return CircleAvatar(backgroundImage: MemoryImage(bytes));
+  }
+}
+
+class _LibraryArtworkRect extends StatefulWidget {
+  const _LibraryArtworkRect({
+    required this.artworkId,
+    required this.borderRadius,
+    required this.fallback,
+  });
+
+  final int? artworkId;
+  final BorderRadius borderRadius;
+  final Widget fallback;
+
+  @override
+  State<_LibraryArtworkRect> createState() => _LibraryArtworkRectState();
+}
+
+class _LibraryArtworkRectState extends State<_LibraryArtworkRect> {
+  Uint8List? _bytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant _LibraryArtworkRect oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.artworkId != widget.artworkId) {
+      _bytes = null;
+      _load();
+    }
+  }
+
+  Future<void> _load() async {
+    final artworkId = widget.artworkId;
+    if (artworkId == null) return;
+    final cached = _LibraryArtworkStore.cache[artworkId];
+    if (cached != null) {
+      setState(() => _bytes = cached);
+      return;
+    }
+    try {
+      final bytes = await _LibraryArtworkStore.query.queryArtwork(
+        artworkId,
+        ArtworkType.AUDIO,
+        size: 320,
+        quality: 60,
+        format: ArtworkFormat.JPEG,
+      );
+      if (!mounted || widget.artworkId != artworkId || bytes == null || bytes.isEmpty) {
+        return;
+      }
+      _LibraryArtworkStore.cache[artworkId] = bytes;
+      setState(() => _bytes = bytes);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = _bytes;
+    if (widget.artworkId == null || bytes == null || bytes.isEmpty) {
+      return widget.fallback;
+    }
+    return ClipRRect(
+      borderRadius: widget.borderRadius,
+      child: Image(
+        image: MemoryImage(bytes),
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
       ),
     );
   }

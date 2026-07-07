@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
@@ -27,15 +29,7 @@ class MiniPlayer extends StatelessWidget {
                     NowPlayingPage(controller: controller, store: store),
               ),
             ),
-            leading: song.artworkId == null
-                ? const CircleAvatar(child: Icon(Icons.music_note))
-                : QueryArtworkWidget(
-                    id: song.artworkId!,
-                    type: ArtworkType.AUDIO,
-                    nullArtworkWidget: const CircleAvatar(
-                      child: Icon(Icons.music_note),
-                    ),
-                  ),
+            leading: _MiniPlayerArtwork(artworkId: song.artworkId),
             title: _MiniMarqueeText(
               text: song.title,
               paused: ModalRoute.of(context)?.isCurrent == false,
@@ -67,6 +61,70 @@ class MiniPlayer extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+class _MiniPlayerArtwork extends StatefulWidget {
+  const _MiniPlayerArtwork({required this.artworkId});
+
+  final int? artworkId;
+
+  @override
+  State<_MiniPlayerArtwork> createState() => _MiniPlayerArtworkState();
+}
+
+class _MiniPlayerArtworkState extends State<_MiniPlayerArtwork> {
+  static final OnAudioQuery _audioQuery = OnAudioQuery();
+  static final Map<int, Uint8List> _cache = <int, Uint8List>{};
+
+  Uint8List? _artworkBytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadArtwork();
+  }
+
+  @override
+  void didUpdateWidget(covariant _MiniPlayerArtwork oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.artworkId != widget.artworkId) {
+      _artworkBytes = null;
+      _loadArtwork();
+    }
+  }
+
+  Future<void> _loadArtwork() async {
+    final artworkId = widget.artworkId;
+    if (artworkId == null) return;
+    final cached = _cache[artworkId];
+    if (cached != null) {
+      setState(() => _artworkBytes = cached);
+      return;
+    }
+    try {
+      final bytes = await _audioQuery.queryArtwork(
+        artworkId,
+        ArtworkType.AUDIO,
+        size: 200,
+        quality: 70,
+        format: ArtworkFormat.JPEG,
+      );
+      if (!mounted || widget.artworkId != artworkId || bytes == null || bytes.isEmpty) {
+        return;
+      }
+      _cache[artworkId] = bytes;
+      setState(() => _artworkBytes = bytes);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = _artworkBytes;
+    if (widget.artworkId == null || bytes == null || bytes.isEmpty) {
+      return const CircleAvatar(child: Icon(Icons.music_note));
+    }
+    return CircleAvatar(backgroundImage: MemoryImage(bytes));
   }
 }
 
