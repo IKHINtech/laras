@@ -41,6 +41,17 @@ class _SettingsPageState extends State<SettingsPage> {
     Color(0xFF4E342E),
   ];
 
+  Future<void> _openSeedColorPicker() async {
+    final picked = await showDialog<Color>(
+      context: context,
+      builder: (_) => _SeedColorPickerDialog(
+        initialColor: widget.themeController.seedColor,
+      ),
+    );
+    if (picked == null) return;
+    await widget.themeController.setSeedColor(picked);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -132,6 +143,7 @@ class _SettingsPageState extends State<SettingsPage> {
         const SizedBox(height: 12),
         Wrap(
           spacing: 10,
+          runSpacing: 10,
           children: _seedOptions
               .map(
                 (color) => InkWell(
@@ -153,6 +165,39 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ),
               )
+              .followedBy([
+                InkWell(
+                  onTap: _openSeedColorPicker,
+                  borderRadius: BorderRadius.circular(999),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: SweepGradient(
+                        colors: [
+                          Colors.red,
+                          Colors.orange,
+                          Colors.yellow,
+                          Colors.green,
+                          Colors.cyan,
+                          Colors.blue,
+                          Colors.purple,
+                          Colors.red,
+                        ],
+                      ),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.palette_outlined,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                ),
+              ])
               .toList(),
         ),
         const SizedBox(height: 20),
@@ -298,6 +343,126 @@ class _SettingsPageState extends State<SettingsPage> {
               'Server login hanya fitur tambahan dan bisa diakses kapan saja dari Settings.',
             ),
           ),
+      ],
+    );
+  }
+}
+
+class _SeedColorPickerDialog extends StatefulWidget {
+  const _SeedColorPickerDialog({required this.initialColor});
+
+  final Color initialColor;
+
+  @override
+  State<_SeedColorPickerDialog> createState() => _SeedColorPickerDialogState();
+}
+
+class _SeedColorPickerDialogState extends State<_SeedColorPickerDialog> {
+  late HSVColor _hsvColor;
+
+  @override
+  void initState() {
+    super.initState();
+    _hsvColor = HSVColor.fromColor(widget.initialColor);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _hsvColor.toColor();
+    return AlertDialog(
+      title: const Text('Pilih warna tema'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              height: 72,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(18),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(height: 12),
+            _ColorSlider(
+              label: 'Hue',
+              value: _hsvColor.hue,
+              max: 360,
+              onChanged: (value) => setState(
+                () => _hsvColor = _hsvColor.withHue(value),
+              ),
+            ),
+            _ColorSlider(
+              label: 'Saturation',
+              value: _hsvColor.saturation,
+              max: 1,
+              onChanged: (value) => setState(
+                () => _hsvColor = _hsvColor.withSaturation(value),
+              ),
+            ),
+            _ColorSlider(
+              label: 'Brightness',
+              value: _hsvColor.value,
+              max: 1,
+              onChanged: (value) => setState(
+                () => _hsvColor = _hsvColor.withValue(value),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Batal'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(color),
+          child: const Text('Pakai'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ColorSlider extends StatelessWidget {
+  const _ColorSlider({
+    required this.label,
+    required this.value,
+    required this.max,
+    required this.onChanged,
+  });
+
+  final String label;
+  final double value;
+  final double max;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final normalized = max == 1 ? value.toStringAsFixed(2) : value.round().toString();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(label),
+            const Spacer(),
+            Text(normalized, style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ),
+        Slider(
+          value: value.clamp(0, max),
+          min: 0,
+          max: max,
+          onChanged: onChanged,
+        ),
       ],
     );
   }
