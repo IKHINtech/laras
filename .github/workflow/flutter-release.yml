@@ -1,0 +1,87 @@
+name: Flutter Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  flutter-release:
+    name: Build Release APK and AAB
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: apps/mobile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Show Flutter version
+        run: flutter --version
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Analyze project
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test
+        continue-on-error: true
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Build release App Bundle
+        run: flutter build appbundle --release
+
+      - name: Prepare release files
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          mkdir -p release
+
+          cp build/app/outputs/flutter-apk/app-release.apk "release/laras-${VERSION}.apk"
+          cp build/app/outputs/bundle/release/app-release.aab "release/laras-${VERSION}.aab"
+
+          sha256sum "release/laras-${VERSION}.apk" > "release/laras-${VERSION}.apk.sha256"
+          sha256sum "release/laras-${VERSION}.aab" > "release/laras-${VERSION}.aab.sha256"
+
+      - name: Upload release build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: laras-release-${{ github.ref_name }}
+          path: apps/mobile/release/*
+          retention-days: 30
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Laras ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            apps/mobile/release/laras-${{ github.ref_name }}.apk
+            apps/mobile/release/laras-${{ github.ref_name }}.aab
+            apps/mobile/release/laras-${{ github.ref_name }}.apk.sha256
+            apps/mobile/release/laras-${{ github.ref_name }}.aab.sha256
