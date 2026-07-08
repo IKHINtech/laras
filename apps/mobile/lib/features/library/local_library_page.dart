@@ -317,7 +317,8 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
                 itemBuilder: (_) => [
                   PopupMenuItem(
                     value: 'favorite',
-                    child: Text(isFavorite ? 'Remove favorite' : 'Add favorite'),
+                    child:
+                        Text(isFavorite ? 'Remove favorite' : 'Add favorite'),
                   ),
                   const PopupMenuItem(
                     value: 'playlist',
@@ -586,7 +587,6 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
             delegate: _StickyTabBarDelegate(
               color: Theme.of(context).colorScheme.surface,
               tabBar: const TabBar(
-                isScrollable: true,
                 tabs: [
                   Tab(text: 'Songs'),
                   Tab(text: 'Artists'),
@@ -825,7 +825,8 @@ class _PlaybackPreviewSection extends StatelessWidget {
                   Text(
                     subtitle,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.78),
+                      color: theme.textTheme.bodySmall?.color
+                          ?.withValues(alpha: 0.78),
                     ),
                   ),
                 ],
@@ -854,7 +855,8 @@ class _PlaybackPreviewSection extends StatelessWidget {
                       color: theme.colorScheme.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+                        color: theme.colorScheme.outlineVariant
+                            .withValues(alpha: 0.45),
                       ),
                     ),
                     child: Column(
@@ -870,7 +872,8 @@ class _PlaybackPreviewSection extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(16),
                                 fallback: DecoratedBox(
                                   decoration: BoxDecoration(
-                                    color: theme.colorScheme.surfaceContainerHighest,
+                                    color: theme
+                                        .colorScheme.surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Icon(
@@ -1170,7 +1173,10 @@ class _LibraryArtworkAvatarState extends State<_LibraryArtworkAvatar> {
         quality: 70,
         format: ArtworkFormat.JPEG,
       );
-      if (!mounted || widget.artworkId != artworkId || bytes == null || bytes.isEmpty) {
+      if (!mounted ||
+          widget.artworkId != artworkId ||
+          bytes == null ||
+          bytes.isEmpty) {
         return;
       }
       _LibraryArtworkStore.cache[artworkId] = bytes;
@@ -1237,7 +1243,10 @@ class _LibraryArtworkRectState extends State<_LibraryArtworkRect> {
         quality: 60,
         format: ArtworkFormat.JPEG,
       );
-      if (!mounted || widget.artworkId != artworkId || bytes == null || bytes.isEmpty) {
+      if (!mounted ||
+          widget.artworkId != artworkId ||
+          bytes == null ||
+          bytes.isEmpty) {
         return;
       }
       _LibraryArtworkStore.cache[artworkId] = bytes;
