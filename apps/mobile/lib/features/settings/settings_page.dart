@@ -5,6 +5,7 @@ import '../../core/equalizer_bridge.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
 import '../../core/theme_controller.dart';
+import '../library/local_music_store.dart';
 import '../auth/login_page.dart';
 import '../player/player_controller.dart';
 
@@ -14,6 +15,7 @@ class SettingsPage extends StatefulWidget {
     required this.isLoggedIn,
     required this.api,
     required this.authStore,
+    required this.store,
     required this.player,
     required this.themeController,
     required this.appIconController,
@@ -23,6 +25,7 @@ class SettingsPage extends StatefulWidget {
   final bool isLoggedIn;
   final ApiClient api;
   final AuthStore authStore;
+  final LocalMusicStore store;
   final PlayerController player;
   final ThemeController themeController;
   final AppIconController appIconController;
@@ -33,12 +36,27 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  static const _seedOptions = <Color>[
-    Color(0xFF0B6E4F),
-    Color(0xFF1565C0),
-    Color(0xFFB3541E),
-    Color(0xFFAD1457),
-    Color(0xFF4E342E),
+  static const _seedOptions = <_ThemePaletteOption>[
+    _ThemePaletteOption(
+      label: 'Laras Default',
+      color: ThemeController.defaultSeedColor,
+    ),
+    _ThemePaletteOption(
+      label: 'Ocean Blue',
+      color: Color(0xFF1565C0),
+    ),
+    _ThemePaletteOption(
+      label: 'Burnt Orange',
+      color: Color(0xFFB3541E),
+    ),
+    _ThemePaletteOption(
+      label: 'Rose Pink',
+      color: Color(0xFFAD1457),
+    ),
+    _ThemePaletteOption(
+      label: 'Earth Brown',
+      color: Color(0xFF4E342E),
+    ),
   ];
 
   Future<void> _openSeedColorPicker() async {
@@ -142,25 +160,61 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         const SizedBox(height: 12),
         Wrap(
-          spacing: 10,
-          runSpacing: 10,
+          spacing: 12,
+          runSpacing: 12,
           children: _seedOptions
               .map(
-            (color) => InkWell(
-              onTap: () => theme.setSeedColor(color),
-              borderRadius: BorderRadius.circular(999),
+            (option) => InkWell(
+              onTap: () => theme.setSeedColor(option.color),
+              borderRadius: BorderRadius.circular(18),
               child: Container(
-                width: 36,
-                height: 36,
+                width: 92,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
+                  color: Theme.of(context).colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(18),
                   border: Border.all(
-                    color: theme.seedColor.toARGB32() == color.toARGB32()
-                        ? Theme.of(context).colorScheme.onSurface
-                        : Colors.transparent,
-                    width: 3,
+                    color: theme.seedColor.toARGB32() == option.color.toARGB32()
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context)
+                            .colorScheme
+                            .outlineVariant
+                            .withValues(alpha: 0.35),
+                    width: theme.seedColor.toARGB32() == option.color.toARGB32()
+                        ? 2
+                        : 1,
                   ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: option.color,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: theme.seedColor.toARGB32() ==
+                                  option.color.toARGB32()
+                              ? Theme.of(context).colorScheme.onSurface
+                              : Colors.transparent,
+                          width: 3,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      option.label,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -168,32 +222,62 @@ class _SettingsPageState extends State<SettingsPage> {
               .followedBy([
             InkWell(
               onTap: _openSeedColorPicker,
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(18),
               child: Container(
-                width: 36,
-                height: 36,
+                width: 92,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: SweepGradient(
-                    colors: [
-                      Colors.red,
-                      Colors.orange,
-                      Colors.yellow,
-                      Colors.green,
-                      Colors.cyan,
-                      Colors.blue,
-                      Colors.purple,
-                      Colors.red,
-                    ],
-                  ),
+                  color: Theme.of(context).colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(18),
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.outlineVariant,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.35),
                   ),
                 ),
-                child: Icon(
-                  Icons.palette_outlined,
-                  size: 18,
-                  color: Theme.of(context).colorScheme.onPrimary,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const SweepGradient(
+                          colors: [
+                            Colors.red,
+                            Colors.orange,
+                            Colors.yellow,
+                            Colors.green,
+                            Colors.cyan,
+                            Colors.blue,
+                            Colors.purple,
+                            Colors.red,
+                          ],
+                        ),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.palette_outlined,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Custom',
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -202,33 +286,18 @@ class _SettingsPageState extends State<SettingsPage> {
         const SizedBox(height: 20),
         Text('App Icon', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        Card(
-          child: RadioGroup<AppIconVariant>(
-            groupValue: widget.appIconController.currentVariant,
-            onChanged: (value) {
-              if (value != null) {
-                _changeAppIcon(value);
-              }
-            },
-            child: Column(
-              children: AppIconVariant.values
-                  .map(
-                    (variant) => RadioListTile<AppIconVariant>(
-                      value: variant,
-                      title: Text(variant.label),
-                      subtitle: Text(
-                        switch (variant) {
-                          AppIconVariant.defaultIcon => 'Icon standar Laras',
-                          AppIconVariant.dark => 'Versi gelap dan lebih subtle',
-                          AppIconVariant.neon =>
-                            'Versi cerah dengan aksen neon',
-                        },
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: AppIconVariant.values
+              .map(
+                (variant) => _AppIconPreviewCard(
+                  variant: variant,
+                  selected: widget.appIconController.currentVariant == variant,
+                  onTap: () => _changeAppIcon(variant),
+                ),
+              )
+              .toList(),
         ),
         const SizedBox(height: 20),
         Text('Sleep Timer', style: Theme.of(context).textTheme.titleMedium),
@@ -304,6 +373,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   authStore: widget.authStore,
                   themeController: widget.themeController,
                   appIconController: widget.appIconController,
+                  localStore: widget.store,
+                  player: widget.player,
                 ),
               ),
             ),
@@ -319,6 +390,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   authStore: widget.authStore,
                   themeController: widget.themeController,
                   appIconController: widget.appIconController,
+                  localStore: widget.store,
+                  player: widget.player,
                   initialRegisterMode: true,
                 ),
               ),
@@ -343,6 +416,110 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _ThemePaletteOption {
+  const _ThemePaletteOption({
+    required this.label,
+    required this.color,
+  });
+
+  final String label;
+  final Color color;
+}
+
+class _AppIconPreviewCard extends StatelessWidget {
+  const _AppIconPreviewCard({
+    required this.variant,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final AppIconVariant variant;
+  final bool selected;
+  final VoidCallback onTap;
+
+  static const _previewAssetByVariant = <AppIconVariant, String>{
+    AppIconVariant.defaultIcon:
+        'android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png',
+    AppIconVariant.dark:
+        'android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_dark.png',
+    AppIconVariant.neon:
+        'android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_neon.png',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 112,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                color: theme.colorScheme.surfaceContainerHighest,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Image.asset(
+                  _previewAssetByVariant[variant]!,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              variant.label,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              switch (variant) {
+                AppIconVariant.defaultIcon => 'Icon standar Laras',
+                AppIconVariant.dark => 'Versi gelap dan subtle',
+                AppIconVariant.neon => 'Versi terang dengan neon',
+              },
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color:
+                    theme.textTheme.bodySmall?.color?.withValues(alpha: 0.78),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

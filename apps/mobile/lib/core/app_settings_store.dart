@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'local_database.dart';
+import 'theme_controller.dart';
 
 class AppSettingsStore {
   static const _themeModeKey = 'theme_mode';
@@ -19,7 +20,7 @@ class AppSettingsStore {
     return AppThemeSettings(
       mode: _parseThemeMode(values[_themeModeKey]),
       seedColorValue: int.tryParse(values[_themeSeedKey] ?? '') ??
-          const Color(0xFF0B6E4F).toARGB32(),
+          ThemeController.defaultSeedColor.toARGB32(),
     );
   }
 

@@ -4,7 +4,9 @@ import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
 import '../../core/theme_controller.dart';
 import '../home_shell.dart';
+import '../library/local_music_store.dart';
 import 'login_page.dart';
+import '../player/player_controller.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({
@@ -13,12 +15,16 @@ class WelcomePage extends StatelessWidget {
     required this.authStore,
     required this.themeController,
     required this.appIconController,
+    required this.localStore,
+    required this.player,
   });
 
   final ApiClient api;
   final AuthStore authStore;
   final ThemeController themeController;
   final AppIconController appIconController;
+  final LocalMusicStore localStore;
+  final PlayerController player;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +65,8 @@ class WelcomePage extends StatelessWidget {
                             authStore: authStore,
                             themeController: themeController,
                             appIconController: appIconController,
+                            localStore: localStore,
+                            player: player,
                           ),
                         ),
                       );
@@ -75,6 +83,8 @@ class WelcomePage extends StatelessWidget {
                           authStore: authStore,
                           themeController: themeController,
                           appIconController: appIconController,
+                          localStore: localStore,
+                          player: player,
                         ),
                       ),
                     ),
@@ -89,6 +99,8 @@ class WelcomePage extends StatelessWidget {
                           authStore: authStore,
                           themeController: themeController,
                           appIconController: appIconController,
+                          localStore: localStore,
+                          player: player,
                           initialRegisterMode: true,
                         ),
                       ),

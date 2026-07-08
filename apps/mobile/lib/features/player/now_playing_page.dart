@@ -1,13 +1,40 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import '../library/local_music_store.dart';
 import '../library/song.dart';
+import 'lyrics_detail_page.dart';
 import 'player_controller.dart';
 import 'lyrics_service.dart';
+
+class NowPlayingRoute {
+  NowPlayingRoute._();
+
+  static const name = '/now-playing';
+  static bool _open = false;
+
+  static Future<void> open(
+    BuildContext context, {
+    required PlayerController controller,
+    required LocalMusicStore store,
+  }) async {
+    if (_open || controller.currentSong == null) return;
+    _open = true;
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          settings: const RouteSettings(name: name),
+          builder: (_) => NowPlayingPage(
+            controller: controller,
+            store: store,
+          ),
+        ),
+      );
+    } finally {
+      _open = false;
+    }
+  }
+}
 
 class NowPlayingPage extends StatefulWidget {
   const NowPlayingPage({
@@ -101,10 +128,9 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
               Theme.of(context).brightness == Brightness.dark
                   ? Brightness.light
                   : Brightness.dark,
-          statusBarBrightness:
-              Theme.of(context).brightness == Brightness.dark
-                  ? Brightness.dark
-                  : Brightness.light,
+          statusBarBrightness: Theme.of(context).brightness == Brightness.dark
+              ? Brightness.dark
+              : Brightness.light,
         ),
         child: Container(
           decoration: BoxDecoration(
@@ -148,7 +174,8 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                         runSpacing: 8,
                         alignment: WrapAlignment.center,
                         children: [
-                          _MetaChip(icon: Icons.folder, label: song.folderLabel),
+                          _MetaChip(
+                              icon: Icons.folder, label: song.folderLabel),
                           _MetaChip(
                             icon: Icons.history,
                             label: history == null
@@ -177,14 +204,32 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                         format: _format,
                       ),
                       const SizedBox(height: 12),
-                      StreamBuilder<PlayerState>(
-                        stream: widget.controller.player.playerStateStream,
-                        builder: (context, snapshot) {
-                          final playing = snapshot.data?.playing ??
-                              widget.controller.isPlaying;
+                      AnimatedBuilder(
+                        animation: widget.controller,
+                        builder: (context, _) {
+                          final playing = widget.controller.isPlaying;
+                          final trackMode = widget.controller.trackPlayMode;
+                          final sleepLabel = widget.controller.sleepTimerLabel;
                           return Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
+                              _ControlSideButton(
+                                icon: switch (trackMode) {
+                                  TrackPlayMode.normal => Icons.repeat,
+                                  TrackPlayMode.shuffle => Icons.shuffle,
+                                  TrackPlayMode.repeatAll => Icons.repeat,
+                                  TrackPlayMode.repeatOne => Icons.repeat_one,
+                                },
+                                label: switch (trackMode) {
+                                  TrackPlayMode.normal => 'Normal',
+                                  TrackPlayMode.shuffle => 'Shuffle',
+                                  TrackPlayMode.repeatAll => 'Loop',
+                                  TrackPlayMode.repeatOne => 'Loop 1',
+                                },
+                                active: trackMode != TrackPlayMode.normal,
+                                onPressed: widget.controller.cycleTrackPlayMode,
+                              ),
+                              const SizedBox(width: 4),
                               IconButton(
                                 iconSize: 36,
                                 onPressed: widget.controller.hasPrevious
@@ -193,16 +238,9 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                                 icon: const Icon(Icons.skip_previous),
                               ),
                               const SizedBox(width: 12),
-                              FilledButton.tonal(
+                              _GradientPlayPauseButton(
+                                playing: playing,
                                 onPressed: widget.controller.playOrPause,
-                                style: FilledButton.styleFrom(
-                                  shape: const CircleBorder(),
-                                  padding: const EdgeInsets.all(18),
-                                ),
-                                child: Icon(
-                                  playing ? Icons.pause : Icons.play_arrow,
-                                  size: 40,
-                                ),
                               ),
                               const SizedBox(width: 12),
                               IconButton(
@@ -211,6 +249,18 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                                     ? widget.controller.next
                                     : null,
                                 icon: const Icon(Icons.skip_next),
+                              ),
+                              const SizedBox(width: 4),
+                              _ControlSideButton(
+                                icon: sleepLabel == 'Off'
+                                    ? Icons.timer_off_outlined
+                                    : Icons.timer_outlined,
+                                label: sleepLabel == 'Off'
+                                    ? 'Off'
+                                    : '${sleepLabel}m',
+                                active: sleepLabel != 'Off',
+                                onPressed:
+                                    widget.controller.cycleSleepTimerPreset,
                               ),
                             ],
                           );
@@ -237,7 +287,7 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                               activeIndex: activeIndex,
                               onOpenDetail: () => Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (_) => _LyricsDetailPage(
+                                  builder: (_) => LyricsDetailPage(
                                     controller: widget.controller,
                                     song: song,
                                     artworkUri: lyricsArtworkUri,
@@ -434,10 +484,149 @@ class _MetaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
-      avatar: Icon(icon, size: 16),
-      label: Text(label, overflow: TextOverflow.ellipsis),
-      visualDensity: VisualDensity.compact,
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.54),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.18),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 15,
+            color: theme.colorScheme.primary.withValues(alpha: 0.92),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.92),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ControlSideButton extends StatelessWidget {
+  const _ControlSideButton({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = active
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurface.withValues(alpha: 0.72);
+    return SizedBox(
+      width: 56,
+      height: 72,
+      child: Stack(
+        children: [
+          Align(
+            alignment: Alignment.center,
+            child: IconButton(
+              onPressed: onPressed,
+              icon: Icon(icon, size: 22, color: color),
+              visualDensity: VisualDensity.compact,
+              style: IconButton.styleFrom(
+                backgroundColor: active
+                    ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                    : Colors.transparent,
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(color: color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GradientPlayPauseButton extends StatelessWidget {
+  const _GradientPlayPauseButton({
+    required this.playing,
+    required this.onPressed,
+  });
+
+  final bool playing;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      behavior: HitTestBehavior.opaque,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x408B5CF6),
+              blurRadius: 18,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Container(
+          width: 70,
+          height: 70,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF8B5CF6),
+                Color(0xFFF59E0B),
+              ],
+            ),
+          ),
+          child: Icon(
+            playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            size: 42,
+            color: Colors.white,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -568,7 +757,8 @@ class _LyricsPreviewCard extends StatelessWidget {
               SizedBox(height: dense ? 8 : (compact ? 12 : 16)),
               for (final line in visibleLines)
                 Padding(
-                  padding: EdgeInsets.only(bottom: dense ? 6 : (compact ? 8 : 10)),
+                  padding:
+                      EdgeInsets.only(bottom: dense ? 6 : (compact ? 8 : 10)),
                   child: Text(
                     line.text,
                     maxLines: dense ? 1 : (compact ? 2 : 1),
@@ -608,7 +798,7 @@ class _LyricsPreviewCard extends StatelessWidget {
                         onPressed: onOpenDetail,
                         style: FilledButton.styleFrom(
                           backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF53273A),
+                          foregroundColor: theme.colorScheme.primary,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.symmetric(
@@ -664,390 +854,75 @@ class _LyricsCardShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = _LyricsThemePalette.fromTheme(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: palette.cardGradient,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.16),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
+    final palette = LyricsThemePalette.fromTheme(context);
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          top: -28,
+          right: -20,
+          child: Container(
+            width: 128,
+            height: 128,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: palette.glowStrong,
+            ),
           ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          if (artworkUri != null)
-            Positioned(
-              top: 18,
-              right: 22,
-              child: Opacity(
-                opacity: 0.16,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: SizedBox(
-                    width: 108,
-                    height: 108,
-                    child: _ArtworkFileImage(uri: artworkUri!),
+        ),
+        Positioned(
+          bottom: -42,
+          left: -24,
+          child: Container(
+            width: 156,
+            height: 156,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: palette.glowSoft,
+            ),
+          ),
+        ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(26),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: palette.cardGradient,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.16),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              if (artworkUri != null)
+                Positioned(
+                  top: 18,
+                  right: 22,
+                  child: Opacity(
+                    opacity: 0.16,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: SizedBox(
+                        width: 108,
+                        height: 108,
+                        child: ArtworkFileImage(uri: artworkUri!),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          Positioned(
-            top: -28,
-            right: -20,
-            child: Container(
-              width: 128,
-              height: 128,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: palette.glowStrong,
-              ),
-            ),
+              SizedBox.expand(child: child),
+            ],
           ),
-          Positioned(
-            bottom: -42,
-            left: -24,
-            child: Container(
-              width: 156,
-              height: 156,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: palette.glowSoft,
-              ),
-            ),
-          ),
-          SizedBox.expand(child: child),
-        ],
-      ),
-    );
-  }
-}
-
-class _LyricsDetailPage extends StatelessWidget {
-  const _LyricsDetailPage({
-    required this.controller,
-    required this.song,
-    required this.artworkUri,
-    required this.lyrics,
-    required this.source,
-  });
-
-  final PlayerController controller;
-  final Song song;
-  final Uri? artworkUri;
-  final List<LyricLine> lyrics;
-  final LyricsSource? source;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = _LyricsThemePalette.fromTheme(context);
-    return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: palette.detailGradient,
-              ),
-            ),
-          ),
-          if (artworkUri != null)
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.16,
-                child: _ArtworkFileImage(uri: artworkUri!),
-              ),
-            ),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: palette.detailOverlay,
-                ),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-              child: StreamBuilder<Duration>(
-                stream: controller.player.positionStream,
-                builder: (context, snapshot) {
-                  final activeIndex =
-                      _resolveActiveIndex(snapshot.data ?? controller.position);
-                  return Column(
-                    children: [
-                      Row(
-                        children: [
-                          SizedBox(
-                            width: 48,
-                            height: 48,
-                            child: IconButton(
-                              onPressed: () => Navigator.of(context).maybePop(),
-                              icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                              color: Colors.white,
-                              iconSize: 34,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                Text(
-                                  song.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleLarge
-                                      ?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  song.artistLabel,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyLarge
-                                      ?.copyWith(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.8,
-                                        ),
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const SizedBox(width: 48, height: 48),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      if (source != null)
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.10),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.10),
-                              ),
-                            ),
-                            child: Text(
-                              'Source: ${source!.label}',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.labelMedium?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.78),
-                              ),
-                            ),
-                          ),
-                        ),
-                      const SizedBox(height: 8),
-                      Expanded(
-                        child: _LyricsTimelineList(
-                          lyrics: lyrics,
-                          activeIndex: activeIndex,
-                          foregroundColor: Colors.white,
-                          fadedColor: Colors.white.withValues(alpha: 0.48),
-                          centerActive: true,
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  int _resolveActiveIndex(Duration position) {
-    if (lyrics.isEmpty) return -1;
-    if (!lyrics.any((line) => line.isTimed)) return -1;
-    var active = 0;
-    for (var i = 0; i < lyrics.length; i++) {
-      if (lyrics[i].isTimed && lyrics[i].at <= position) {
-        active = i;
-      } else {
-        break;
-      }
-    }
-    return active;
-  }
-}
-
-class _LyricsThemePalette {
-  const _LyricsThemePalette({
-    required this.cardGradient,
-    required this.detailGradient,
-    required this.detailOverlay,
-    required this.glowStrong,
-    required this.glowSoft,
-  });
-
-  final List<Color> cardGradient;
-  final List<Color> detailGradient;
-  final List<Color> detailOverlay;
-  final Color glowStrong;
-  final Color glowSoft;
-
-  factory _LyricsThemePalette.fromTheme(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final top = Color.alphaBlend(
-      scheme.primary.withValues(alpha: 0.26),
-      scheme.primaryContainer,
-    );
-    final mid = Color.alphaBlend(
-      scheme.secondary.withValues(alpha: 0.18),
-      scheme.surfaceContainerHigh,
-    );
-    final bottom = Color.alphaBlend(
-      Colors.black.withValues(alpha: 0.42),
-      scheme.surface,
-    );
-    final detailTop = Color.alphaBlend(
-      scheme.primary.withValues(alpha: 0.3),
-      scheme.primaryContainer,
-    );
-    final detailMid = Color.alphaBlend(
-      scheme.secondary.withValues(alpha: 0.22),
-      scheme.surfaceContainer,
-    );
-    final detailBottom = Color.alphaBlend(
-      Colors.black.withValues(alpha: 0.58),
-      scheme.surface,
-    );
-    return _LyricsThemePalette(
-      cardGradient: [top, mid, bottom],
-      detailGradient: [detailTop, detailMid, detailBottom],
-      detailOverlay: [
-        scheme.primary.withValues(alpha: 0.14),
-        Colors.black.withValues(alpha: 0.42),
-        Colors.black.withValues(alpha: 0.68),
+        ),
       ],
-      glowStrong: scheme.onSurface.withValues(alpha: 0.06),
-      glowSoft: scheme.onSurface.withValues(alpha: 0.035),
-    );
-  }
-}
-
-class _ArtworkFileImage extends StatelessWidget {
-  const _ArtworkFileImage({required this.uri});
-
-  final Uri uri;
-
-  @override
-  Widget build(BuildContext context) {
-    return Image(
-      image: FileImage(File(uri.toFilePath())),
-      fit: BoxFit.cover,
-      filterQuality: FilterQuality.medium,
-      gaplessPlayback: true,
-      errorBuilder: (_, error, stackTrace) => const SizedBox.shrink(),
-    );
-  }
-}
-
-class _LyricsTimelineList extends StatefulWidget {
-  const _LyricsTimelineList({
-    required this.lyrics,
-    required this.activeIndex,
-    required this.foregroundColor,
-    required this.fadedColor,
-    required this.centerActive,
-  });
-
-  final List<LyricLine> lyrics;
-  final int activeIndex;
-  final Color foregroundColor;
-  final Color fadedColor;
-  final bool centerActive;
-
-  @override
-  State<_LyricsTimelineList> createState() => _LyricsTimelineListState();
-}
-
-class _LyricsTimelineListState extends State<_LyricsTimelineList> {
-  final ScrollController _scrollController = ScrollController();
-  final Map<int, GlobalKey> _lineKeys = <int, GlobalKey>{};
-  int _lastScrolledIndex = -1;
-
-  @override
-  void didUpdateWidget(covariant _LyricsTimelineList oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.activeIndex >= 0 && widget.activeIndex != _lastScrolledIndex) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToActive());
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _scrollToActive() {
-    if (!mounted) return;
-    final key = _lineKeys[widget.activeIndex];
-    final context = key?.currentContext;
-    if (context == null) return;
-    _lastScrolledIndex = widget.activeIndex;
-    Scrollable.ensureVisible(
-      context,
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOutCubic,
-      alignment: widget.centerActive ? 0.4 : 0.38,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-      itemCount: widget.lyrics.length,
-      itemBuilder: (_, index) {
-        final active = index == widget.activeIndex;
-        final key = _lineKeys.putIfAbsent(index, GlobalKey.new);
-        return Padding(
-          key: key,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Text(
-            widget.lyrics[index].text,
-            textAlign: TextAlign.left,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: active ? widget.foregroundColor : widget.fadedColor,
-                  fontWeight: active ? FontWeight.w800 : FontWeight.w700,
-                  height: 1.18,
-                ),
-          ),
-        );
-      },
     );
   }
 }

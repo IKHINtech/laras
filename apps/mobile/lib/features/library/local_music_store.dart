@@ -11,6 +11,7 @@ class LocalMusicStore {
   static const _playlistKey = 'laras.local.playlists';
   static const _libraryKey = 'laras.local.library_cache';
   static const _migrationKey = 'laras.local.sqlite_migrated_v1';
+  static const _playbackSessionKey = 'laras.local.playback_session_v1';
 
   Future<Database> get _db async {
     final db = await LocalDatabase.instance.database;
@@ -257,6 +258,20 @@ class LocalMusicStore {
     return rows.map(_songFromRow).toList();
   }
 
+  Future<List<Song>> loadSongsByIds(List<String> ids) async {
+    if (ids.isEmpty) return const [];
+    final db = await _db;
+    final placeholders = List.filled(ids.length, '?').join(', ');
+    final rows = await db.rawQuery(
+      'SELECT * FROM local_songs WHERE id IN ($placeholders)',
+      ids,
+    );
+    final songsById = {
+      for (final row in rows) (row['id'] as String): _songFromRow(row),
+    };
+    return ids.map((id) => songsById[id]).whereType<Song>().toList();
+  }
+
   Future<void> saveLibrary(List<Song> songs) async {
     final db = await _db;
     await db.transaction((txn) async {
@@ -292,6 +307,37 @@ class LocalMusicStore {
         'is_active': endTime == null ? 0 : 1,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> savePlaybackSession({
+    required List<String> songIds,
+    required int currentIndex,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final payload = jsonEncode({
+      'song_ids': songIds,
+      'current_index': currentIndex,
+    });
+    await prefs.setString(_playbackSessionKey, payload);
+  }
+
+  Future<PlaybackSession?> loadPlaybackSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_playbackSessionKey);
+    if (raw == null || raw.isEmpty) return null;
+    final json = jsonDecode(raw) as Map<String, dynamic>;
+    final songIds = (json['song_ids'] as List<dynamic>? ?? const [])
+        .map((e) => e.toString())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (songIds.isEmpty) return null;
+    return PlaybackSession(
+      songIds: songIds,
+      currentIndex: (json['current_index'] as int? ?? 0).clamp(
+        0,
+        songIds.length - 1,
+      ),
     );
   }
 
@@ -386,6 +432,19 @@ class LocalMusicStore {
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+
+    if (incrementPlayCount) {
+      await db.insert(
+        'local_playback_events',
+        {
+          'song_id': songId,
+          'event_type': 'play_start',
+          'position_ms': positionMs,
+          'played_at_epoch_ms': now,
+          'play_weight': 1,
+        },
+      );
+    }
   }
 
   Future<PlaybackHistory?> loadPlaybackHistory(String songId) async {
@@ -428,6 +487,117 @@ class LocalMusicStore {
           ),
         )
         .toList();
+  }
+
+  Future<List<RecentPlaybackEntry>> loadRecentPlayedSongs({int limit = 20}) async {
+    final db = await _db;
+    final rows = await db.rawQuery(
+      '''
+      WITH recent_song_events AS (
+        SELECT
+          song_id,
+          MAX(played_at_epoch_ms) AS last_played_at_epoch_ms
+        FROM local_playback_events
+        GROUP BY song_id
+      )
+      SELECT
+        s.id AS id,
+        h.song_id,
+        h.last_position_ms,
+        r.last_played_at_epoch_ms AS played_at_epoch_ms,
+        h.play_count,
+        s.title,
+        s.artist,
+        s.album,
+        s.stream_url,
+        s.duration_ms,
+        s.artwork_id,
+        s.folder_path,
+        s.file_path,
+        s.is_local
+      FROM recent_song_events r
+      INNER JOIN local_playback_history h ON h.song_id = r.song_id
+      INNER JOIN local_songs s ON s.id = h.song_id
+      ORDER BY r.last_played_at_epoch_ms DESC
+      LIMIT ?
+      ''',
+      [limit],
+    );
+    return rows
+        .map(
+          (row) => RecentPlaybackEntry(
+            song: _songFromRow(row),
+            history: PlaybackHistory(
+              songId: row['song_id'] as String,
+              lastPositionMs: row['last_position_ms'] as int? ?? 0,
+              playedAt: DateTime.fromMillisecondsSinceEpoch(
+                row['played_at_epoch_ms'] as int? ?? 0,
+              ),
+              playCount: row['play_count'] as int? ?? 0,
+            ),
+          ),
+        )
+        .toList();
+  }
+
+  Future<List<RecentPlaybackEntry>> loadMostPlayedSongs({int limit = 20}) async {
+    final db = await _db;
+    final rows = await db.rawQuery(
+      '''
+      WITH play_totals AS (
+        SELECT
+          song_id,
+          SUM(play_weight) AS total_plays,
+          MAX(played_at_epoch_ms) AS last_played_at_epoch_ms
+        FROM local_playback_events
+        GROUP BY song_id
+      )
+      SELECT
+        s.id AS id,
+        h.song_id,
+        h.last_position_ms,
+        p.last_played_at_epoch_ms AS played_at_epoch_ms,
+        p.total_plays AS play_count,
+        s.title,
+        s.artist,
+        s.album,
+        s.stream_url,
+        s.duration_ms,
+        s.artwork_id,
+        s.folder_path,
+        s.file_path,
+        s.is_local
+      FROM play_totals p
+      INNER JOIN local_playback_history h ON h.song_id = p.song_id
+      INNER JOIN local_songs s ON s.id = p.song_id
+      ORDER BY p.total_plays DESC, p.last_played_at_epoch_ms DESC
+      LIMIT ?
+      ''',
+      [limit],
+    );
+    return rows
+        .map(
+          (row) => RecentPlaybackEntry(
+            song: _songFromRow(row),
+            history: PlaybackHistory(
+              songId: row['song_id'] as String,
+              lastPositionMs: row['last_position_ms'] as int? ?? 0,
+              playedAt: DateTime.fromMillisecondsSinceEpoch(
+                row['played_at_epoch_ms'] as int? ?? 0,
+              ),
+              playCount: row['play_count'] as int? ?? 0,
+            ),
+          ),
+        )
+        .toList();
+  }
+
+  Future<void> clearPlaybackHistory() async {
+    final db = await _db;
+    await db.transaction((txn) async {
+      await txn.delete('local_playback_events');
+      await txn.delete('local_playback_history');
+    });
   }
 
   Future<void> reorderPlaylistSongs(
@@ -545,6 +715,26 @@ class PlaybackHistory {
   final int lastPositionMs;
   final DateTime playedAt;
   final int playCount;
+}
+
+class PlaybackSession {
+  const PlaybackSession({
+    required this.songIds,
+    required this.currentIndex,
+  });
+
+  final List<String> songIds;
+  final int currentIndex;
+}
+
+class RecentPlaybackEntry {
+  const RecentPlaybackEntry({
+    required this.song,
+    required this.history,
+  });
+
+  final Song song;
+  final PlaybackHistory history;
 }
 
 class LocalLyricsCache {

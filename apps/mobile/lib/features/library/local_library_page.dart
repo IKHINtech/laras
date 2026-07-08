@@ -5,6 +5,7 @@ import 'package:on_audio_query/on_audio_query.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../player/player_controller.dart';
 import 'local_music_store.dart';
+import 'playback_insights_page.dart';
 import 'song.dart';
 
 class LocalLibraryPage extends StatefulWidget {
@@ -29,20 +30,25 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
   final scrollController = ScrollController();
   List<Song> localSongs = [];
   List<Song> collageSongs = [];
+  List<RecentPlaybackEntry> recentEntries = [];
+  List<RecentPlaybackEntry> mostPlayedEntries = [];
   Set<String> favoriteIds = <String>{};
   bool loading = false;
   bool showCollapsedActions = false;
+  String? _lastHistorySongId;
 
   @override
   void initState() {
     super.initState();
     scrollController.addListener(_handleScroll);
+    widget.player.addListener(_handlePlayerRefresh);
     _loadInitial();
   }
 
   @override
   void dispose() {
     scrollController.removeListener(_handleScroll);
+    widget.player.removeListener(_handlePlayerRefresh);
     search.dispose();
     searchFocus.dispose();
     scrollController.dispose();
@@ -57,17 +63,31 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
     }
   }
 
+  void _handlePlayerRefresh() {
+    final songId = widget.player.currentSong?.id;
+    if (songId == null || songId == _lastHistorySongId) return;
+    _lastHistorySongId = songId;
+    _refreshPlaybackInsights();
+  }
+
   Future<void> _loadInitial() async {
     final cachedSongs = await widget.store.loadLibrary();
     final favorites = await widget.store.loadFavorites();
     localSongs = cachedSongs;
     favoriteIds = favorites;
     await _refreshCollageSongs();
+    await _refreshPlaybackInsights();
     if (mounted) setState(() {});
   }
 
   Future<void> _reloadFavorites() async {
     favoriteIds = await widget.store.loadFavorites();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _refreshPlaybackInsights() async {
+    recentEntries = await widget.store.loadRecentPlayedSongs(limit: 10);
+    mostPlayedEntries = await widget.store.loadMostPlayedSongs(limit: 10);
     if (mounted) setState(() {});
   }
 
@@ -297,7 +317,8 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
                 itemBuilder: (_) => [
                   PopupMenuItem(
                     value: 'favorite',
-                    child: Text(isFavorite ? 'Remove favorite' : 'Add favorite'),
+                    child:
+                        Text(isFavorite ? 'Remove favorite' : 'Add favorite'),
                   ),
                   const PopupMenuItem(
                     value: 'playlist',
@@ -325,10 +346,71 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
         ),
       );
     }
+    final showInsights = search.text.trim().isEmpty &&
+        (recentEntries.isNotEmpty || mostPlayedEntries.isNotEmpty);
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 16),
-      itemCount: songs.length,
-      itemBuilder: (_, i) => _buildSongTile(songs[i], songs),
+      itemCount: songs.length + (showInsights ? 1 : 0),
+      itemBuilder: (_, i) {
+        if (showInsights && i == 0) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+            child: Column(
+              children: [
+                if (recentEntries.isNotEmpty)
+                  _PlaybackPreviewSection(
+                    title: 'Recently Played',
+                    subtitle: 'Lagu yang baru kamu putar di device ini',
+                    entries: recentEntries.take(8).toList(),
+                    emptyIcon: Icons.history,
+                    onViewAll: () => Navigator.of(context)
+                        .push(
+                          MaterialPageRoute(
+                            builder: (_) => PlaybackInsightsPage(
+                              player: widget.player,
+                              store: widget.store,
+                              mode: PlaybackInsightsMode.recent,
+                            ),
+                          ),
+                        )
+                        .then((_) => _refreshPlaybackInsights()),
+                    onPlayEntry: (entryIndex) => widget.player.playQueue(
+                      recentEntries.map((entry) => entry.song).toList(),
+                      entryIndex,
+                    ),
+                  ),
+                if (recentEntries.isNotEmpty && mostPlayedEntries.isNotEmpty)
+                  const SizedBox(height: 14),
+                if (mostPlayedEntries.isNotEmpty)
+                  _PlaybackPreviewSection(
+                    title: 'Most Played',
+                    subtitle: 'Lagu yang paling sering kamu putar',
+                    entries: mostPlayedEntries.take(8).toList(),
+                    emptyIcon: Icons.bar_chart_rounded,
+                    showRank: true,
+                    onViewAll: () => Navigator.of(context)
+                        .push(
+                          MaterialPageRoute(
+                            builder: (_) => PlaybackInsightsPage(
+                              player: widget.player,
+                              store: widget.store,
+                              mode: PlaybackInsightsMode.mostPlayed,
+                            ),
+                          ),
+                        )
+                        .then((_) => _refreshPlaybackInsights()),
+                    onPlayEntry: (entryIndex) => widget.player.playQueue(
+                      mostPlayedEntries.map((entry) => entry.song).toList(),
+                      entryIndex,
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }
+        final songIndex = showInsights ? i - 1 : i;
+        return _buildSongTile(songs[songIndex], songs);
+      },
     );
   }
 
@@ -487,9 +569,28 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
                         TextField(
                           controller: search,
                           focusNode: searchFocus,
-                          decoration: const InputDecoration(
-                            prefixIcon: Icon(Icons.search),
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.search),
                             hintText: 'Search songs, artist, album, folder',
+                            filled: true,
+                            fillColor: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHigh,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(
+                                color: Theme.of(context).colorScheme.primary,
+                                width: 1.2,
+                              ),
+                            ),
                           ),
                           onChanged: (_) => setState(() {}),
                         ),
@@ -505,7 +606,6 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
             delegate: _StickyTabBarDelegate(
               color: Theme.of(context).colorScheme.surface,
               tabBar: const TabBar(
-                isScrollable: true,
                 tabs: [
                   Tab(text: 'Songs'),
                   Tab(text: 'Artists'),
@@ -706,6 +806,159 @@ class _GroupBucket {
 
   final String label;
   final List<Song> songs;
+}
+
+class _PlaybackPreviewSection extends StatelessWidget {
+  const _PlaybackPreviewSection({
+    required this.title,
+    required this.subtitle,
+    required this.entries,
+    required this.emptyIcon,
+    required this.onViewAll,
+    required this.onPlayEntry,
+    this.showRank = false,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<RecentPlaybackEntry> entries;
+  final IconData emptyIcon;
+  final VoidCallback onViewAll;
+  final ValueChanged<int> onPlayEntry;
+  final bool showRank;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.textTheme.bodySmall?.color
+                          ?.withValues(alpha: 0.78),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            TextButton(onPressed: onViewAll, child: const Text('Lihat semua')),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 186,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: entries.length,
+            separatorBuilder: (_, index) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final entry = entries[index];
+              return SizedBox(
+                width: 132,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => onPlayEntry(index),
+                  child: Ink(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant
+                            .withValues(alpha: 0.45),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Stack(
+                          children: [
+                            SizedBox(
+                              width: 112,
+                              height: 112,
+                              child: _LibraryArtworkRect(
+                                artworkId: entry.song.artworkId,
+                                borderRadius: BorderRadius.circular(16),
+                                fallback: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: theme
+                                        .colorScheme.surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Icon(
+                                    emptyIcon,
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.32),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (showRank)
+                              Positioned(
+                                top: 8,
+                                left: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.42),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    '#${index + 1}',
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          entry.song.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          showRank
+                              ? '${entry.history.playCount}x diputar'
+                              : entry.song.artistLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.textTheme.bodySmall?.color
+                                ?.withValues(alpha: 0.78),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _NowPlayingIndicator extends StatelessWidget {
@@ -939,7 +1192,10 @@ class _LibraryArtworkAvatarState extends State<_LibraryArtworkAvatar> {
         quality: 70,
         format: ArtworkFormat.JPEG,
       );
-      if (!mounted || widget.artworkId != artworkId || bytes == null || bytes.isEmpty) {
+      if (!mounted ||
+          widget.artworkId != artworkId ||
+          bytes == null ||
+          bytes.isEmpty) {
         return;
       }
       _LibraryArtworkStore.cache[artworkId] = bytes;
@@ -1006,7 +1262,10 @@ class _LibraryArtworkRectState extends State<_LibraryArtworkRect> {
         quality: 60,
         format: ArtworkFormat.JPEG,
       );
-      if (!mounted || widget.artworkId != artworkId || bytes == null || bytes.isEmpty) {
+      if (!mounted ||
+          widget.artworkId != artworkId ||
+          bytes == null ||
+          bytes.isEmpty) {
         return;
       }
       _LibraryArtworkStore.cache[artworkId] = bytes;

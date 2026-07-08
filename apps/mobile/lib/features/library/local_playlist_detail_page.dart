@@ -30,13 +30,35 @@ class LocalPlaylistDetailPage extends StatefulWidget {
 
 class _LocalPlaylistDetailPageState extends State<LocalPlaylistDetailPage> {
   late List<Song> songs;
+  final searchController = TextEditingController();
+  final searchFocus = FocusNode();
+  bool searching = false;
 
   bool get editable => widget.playlistId != null && widget.store != null;
+  List<Song> get visibleSongs {
+    final query = searchController.text.trim().toLowerCase();
+    if (query.isEmpty) return songs;
+    return songs
+        .where(
+          (song) =>
+              song.title.toLowerCase().contains(query) ||
+              song.artistLabel.toLowerCase().contains(query) ||
+              song.albumLabel.toLowerCase().contains(query),
+        )
+        .toList();
+  }
 
   @override
   void initState() {
     super.initState();
     songs = [...widget.songs];
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    searchFocus.dispose();
+    super.dispose();
   }
 
   Future<void> _removeAt(int index) async {
@@ -46,6 +68,12 @@ class _LocalPlaylistDetailPageState extends State<LocalPlaylistDetailPage> {
     if (!confirmed) return;
     await widget.store!.removeSongFromPlaylist(widget.playlistId!, song.id);
     setState(() => songs.removeAt(index));
+  }
+
+  Future<void> _removeSong(Song song) async {
+    final index = songs.indexWhere((item) => item.id == song.id);
+    if (index < 0) return;
+    await _removeAt(index);
   }
 
   Future<bool> _confirmRemoveSong(Song song) async {
@@ -84,41 +112,265 @@ class _LocalPlaylistDetailPageState extends State<LocalPlaylistDetailPage> {
     );
   }
 
+  Future<void> _playPlaylist() async {
+    if (songs.isEmpty) return;
+    await widget.player.playQueue(songs, 0);
+  }
+
+  void _startSearch() {
+    setState(() => searching = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) searchFocus.requestFocus();
+    });
+  }
+
+  void _stopSearch() {
+    searchController.clear();
+    searchFocus.unfocus();
+    setState(() => searching = false);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final visibleSongs = this.visibleSongs;
+    final canReorder = editable && !searching && searchController.text.isEmpty;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: songs.isEmpty
-          ? const Center(child: Text('Playlist empty'))
-          : editable
-              ? ReorderableListView.builder(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  itemCount: songs.length,
-                  onReorderItem: _reorder,
-                  itemBuilder: (_, index) {
-                    final song = songs[index];
-                    return _SongTile(
-                      key: ValueKey(song.id),
-                      song: song,
-                      index: index,
-                      player: widget.player,
-                      onTap: () => widget.player.playQueue(songs, index),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.remove_circle_outline),
-                        onPressed: () => _removeAt(index),
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 280,
+            title: searching
+                ? TextField(
+                    controller: searchController,
+                    focusNode: searchFocus,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Search playlist',
+                      border: InputBorder.none,
+                    ),
+                    textInputAction: TextInputAction.search,
+                    onChanged: (_) => setState(() {}),
+                  )
+                : Text(widget.title),
+            actions: [
+              IconButton(
+                tooltip: searching ? 'Close search' : 'Search',
+                icon: Icon(searching ? Icons.close : Icons.search),
+                onPressed: searching ? _stopSearch : _startSearch,
+              ),
+            ],
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            surfaceTintColor: Colors.transparent,
+            flexibleSpace: FlexibleSpaceBar(
+              background: _PlaylistHeader(
+                title: widget.title,
+                songs: songs,
+                onPlay: songs.isEmpty ? null : _playPlaylist,
+              ),
+            ),
+          ),
+        ],
+        body: songs.isEmpty
+            ? const Center(child: Text('Playlist empty'))
+            : visibleSongs.isEmpty
+                ? const Center(child: Text('No songs match search.'))
+                : canReorder
+                    ? ReorderableListView.builder(
+                        padding: const EdgeInsets.only(top: 8, bottom: 16),
+                        itemCount: songs.length,
+                        onReorderItem: _reorder,
+                        itemBuilder: (_, index) {
+                          final song = songs[index];
+                          return _SongTile(
+                            key: ValueKey(song.id),
+                            song: song,
+                            index: index,
+                            player: widget.player,
+                            onTap: () => widget.player.playQueue(songs, index),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.remove_circle_outline),
+                              onPressed: () => _removeAt(index),
+                            ),
+                          );
+                        },
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.only(top: 8, bottom: 16),
+                        itemCount: visibleSongs.length,
+                        itemBuilder: (_, index) {
+                          final song = visibleSongs[index];
+                          return _SongTile(
+                            song: song,
+                            index:
+                                songs.indexWhere((item) => item.id == song.id),
+                            player: widget.player,
+                            onTap: () =>
+                                widget.player.playQueue(visibleSongs, index),
+                            trailing: editable
+                                ? IconButton(
+                                    icon:
+                                        const Icon(Icons.remove_circle_outline),
+                                    onPressed: () => _removeSong(song),
+                                  )
+                                : null,
+                          );
+                        },
                       ),
-                    );
-                  },
-                )
-              : ListView.builder(
-                  itemCount: songs.length,
-                  itemBuilder: (_, index) => _SongTile(
-                    song: songs[index],
-                    index: index,
-                    player: widget.player,
-                    onTap: () => widget.player.playQueue(songs, index),
+      ),
+    );
+  }
+}
+
+class _PlaylistHeader extends StatelessWidget {
+  const _PlaylistHeader({
+    required this.title,
+    required this.songs,
+    required this.onPlay,
+  });
+
+  final String title;
+  final List<Song> songs;
+  final VoidCallback? onPlay;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                theme.colorScheme.primaryContainer.withValues(alpha: 0.65),
+                theme.colorScheme.surface,
+              ],
+            ),
+          ),
+        ),
+        Opacity(
+          opacity: 0.22,
+          child: _PlaylistHeaderCollage(songs: songs),
+        ),
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 56, 20, 18),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _PlaylistHeaderCollage(songs: songs, compact: true),
+                const SizedBox(width: 18),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${songs.length} songs',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.72,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      FilledButton.icon(
+                        onPressed: onPlay,
+                        icon: const Icon(Icons.play_arrow_rounded),
+                        label: const Text('Play'),
+                      ),
+                    ],
                   ),
                 ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PlaylistHeaderCollage extends StatelessWidget {
+  const _PlaylistHeaderCollage({
+    required this.songs,
+    this.compact = false,
+  });
+
+  final List<Song> songs;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final artworkSongs = <Song>[];
+    final seen = <int>{};
+    for (final song in songs) {
+      final artworkId = song.artworkId;
+      if (artworkId == null || seen.contains(artworkId)) continue;
+      seen.add(artworkId);
+      artworkSongs.add(song);
+      if (artworkSongs.length == 4) break;
+    }
+
+    final size = compact ? 116.0 : double.infinity;
+    return SizedBox(
+      width: compact ? size : null,
+      height: compact ? size : null,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(compact ? 24 : 0),
+        child: GridView.builder(
+          padding: EdgeInsets.zero,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+          ),
+          itemCount: 4,
+          itemBuilder: (context, index) {
+            final song =
+                index < artworkSongs.length ? artworkSongs[index] : null;
+            return _PlaylistHeaderTile(song: song);
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _PlaylistHeaderTile extends StatelessWidget {
+  const _PlaylistHeaderTile({required this.song});
+
+  final Song? song;
+
+  @override
+  Widget build(BuildContext context) {
+    final artworkId = song?.artworkId;
+    if (artworkId == null) {
+      return ColoredBox(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: const Icon(Icons.music_note),
+      );
+    }
+
+    return QueryArtworkWidget(
+      id: artworkId,
+      type: ArtworkType.AUDIO,
+      artworkFit: BoxFit.cover,
+      nullArtworkWidget: ColoredBox(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: const Icon(Icons.music_note),
+      ),
     );
   }
 }

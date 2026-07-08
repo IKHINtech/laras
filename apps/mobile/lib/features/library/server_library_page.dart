@@ -7,6 +7,7 @@ import '../../core/auth_store.dart';
 import '../../core/theme_controller.dart';
 import '../auth/login_page.dart';
 import '../player/player_controller.dart';
+import 'local_music_store.dart';
 import 'song.dart';
 
 class ServerLibraryPage extends StatefulWidget {
@@ -16,12 +17,14 @@ class ServerLibraryPage extends StatefulWidget {
     required this.authStore,
     required this.themeController,
     required this.appIconController,
+    required this.store,
     required this.player,
   });
   final ApiClient api;
   final AuthStore authStore;
   final ThemeController themeController;
   final AppIconController appIconController;
+  final LocalMusicStore store;
   final PlayerController player;
 
   @override
@@ -94,6 +97,8 @@ class _ServerLibraryPageState extends State<ServerLibraryPage> {
                               authStore: widget.authStore,
                               themeController: widget.themeController,
                               appIconController: widget.appIconController,
+                              localStore: widget.store,
+                              player: widget.player,
                             ),
                           ),
                         )
@@ -110,6 +115,8 @@ class _ServerLibraryPageState extends State<ServerLibraryPage> {
                               authStore: widget.authStore,
                               themeController: widget.themeController,
                               appIconController: widget.appIconController,
+                              localStore: widget.store,
+                              player: widget.player,
                               initialRegisterMode: true,
                             ),
                           ),

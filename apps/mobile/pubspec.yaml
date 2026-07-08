@@ -32,7 +32,17 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
 
+dependency_overrides:
+  just_audio_background:
+    path: third_party/just_audio_background
+
 flutter:
   uses-material-design: true
   assets:
     - assets/
+    - android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+    - android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_dark.png
+    - android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_neon.png
+    - android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png
+    - android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground_dark.png
+    - android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground_neon.png

@@ -13,7 +13,7 @@ class LocalDatabase {
     final dbPath = await getDatabasesPath();
     _db = await openDatabase(
       '$dbPath/laras_local.db',
-      version: 3,
+      version: 4,
       onCreate: (db, version) async => _createSchema(db),
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -28,6 +28,42 @@ class LocalDatabase {
           await db.execute('''
             ALTER TABLE local_lyrics_index
             ADD COLUMN source TEXT NOT NULL DEFAULT 'lrc'
+          ''');
+        }
+        if (oldVersion < 4) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS local_playback_events (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              song_id TEXT NOT NULL,
+              event_type TEXT NOT NULL DEFAULT 'play_start',
+              position_ms INTEGER NOT NULL DEFAULT 0,
+              played_at_epoch_ms INTEGER NOT NULL DEFAULT 0,
+              play_weight INTEGER NOT NULL DEFAULT 1
+            )
+          ''');
+          await db.execute('''
+            CREATE INDEX IF NOT EXISTS idx_playback_events_song_time
+            ON local_playback_events(song_id, played_at_epoch_ms DESC)
+          ''');
+          await db.execute('''
+            INSERT INTO local_playback_events (
+              song_id,
+              event_type,
+              position_ms,
+              played_at_epoch_ms,
+              play_weight
+            )
+            SELECT
+              song_id,
+              'legacy_import',
+              last_position_ms,
+              played_at_epoch_ms,
+              CASE
+                WHEN play_count <= 0 THEN 1
+                ELSE play_count
+              END
+            FROM local_playback_history
+            WHERE played_at_epoch_ms > 0
           ''');
         }
       },
@@ -99,6 +135,22 @@ class LocalDatabase {
         played_at_epoch_ms INTEGER NOT NULL DEFAULT 0,
         play_count INTEGER NOT NULL DEFAULT 0
       )
+    ''');
+
+    batch.execute('''
+      CREATE TABLE local_playback_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        song_id TEXT NOT NULL,
+        event_type TEXT NOT NULL DEFAULT 'play_start',
+        position_ms INTEGER NOT NULL DEFAULT 0,
+        played_at_epoch_ms INTEGER NOT NULL DEFAULT 0,
+        play_weight INTEGER NOT NULL DEFAULT 1
+      )
+    ''');
+
+    batch.execute('''
+      CREATE INDEX idx_playback_events_song_time
+      ON local_playback_events(song_id, played_at_epoch_ms DESC)
     ''');
 
     batch.execute('''

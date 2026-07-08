@@ -4,13 +4,21 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.audiofx.AudioEffect
+import androidx.core.content.FileProvider
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
 
 class MainActivity : AudioServiceActivity() {
     private val equalizerChannelName = "laras/equalizer"
     private val appIconChannelName = "laras/app_icon"
+    private val shareChannelName = "laras/share"
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -51,6 +59,45 @@ class MainActivity : AudioServiceActivity() {
                             return@setMethodCallHandler
                         }
                         result.success(setLauncherIcon(variant))
+                    }
+
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, shareChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "shareImage" -> {
+                        val path = call.argument<String>("path")
+                        if (path.isNullOrBlank()) {
+                            result.error("missing_path", "Image path is required.", null)
+                            return@setMethodCallHandler
+                        }
+
+                        val file = File(path)
+                        if (!file.exists()) {
+                            result.error("missing_file", "Image file does not exist.", null)
+                            return@setMethodCallHandler
+                        }
+
+                        val uri = FileProvider.getUriForFile(
+                            this,
+                            "$packageName.fileprovider",
+                            file,
+                        )
+
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "image/png"
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            call.argument<String>("text")?.let {
+                                putExtra(Intent.EXTRA_TEXT, it)
+                            }
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+
+                        startActivity(Intent.createChooser(shareIntent, "Share lyrics"))
+                        result.success(true)
                     }
 
                     else -> result.notImplemented()
