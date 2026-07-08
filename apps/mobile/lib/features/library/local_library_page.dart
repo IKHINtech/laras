@@ -569,9 +569,28 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
                         TextField(
                           controller: search,
                           focusNode: searchFocus,
-                          decoration: const InputDecoration(
-                            prefixIcon: Icon(Icons.search),
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.search),
                             hintText: 'Search songs, artist, album, folder',
+                            filled: true,
+                            fillColor: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHigh,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(
+                                color: Theme.of(context).colorScheme.primary,
+                                width: 1.2,
+                              ),
+                            ),
                           ),
                           onChanged: (_) => setState(() {}),
                         ),
