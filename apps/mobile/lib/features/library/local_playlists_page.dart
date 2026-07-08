@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../player/player_controller.dart';
 import 'local_music_store.dart';
 import 'local_playlist_detail_page.dart';
+import 'playback_insights_page.dart';
 import 'song.dart';
 
 class LocalPlaylistsPage extends StatefulWidget {
@@ -21,6 +22,8 @@ class _LocalPlaylistsPageState extends State<LocalPlaylistsPage> {
   List<LocalPlaylist> playlists = [];
   List<Song> songs = [];
   Set<String> favoriteIds = <String>{};
+  List<RecentPlaybackEntry> recentEntries = [];
+  List<RecentPlaybackEntry> mostPlayedEntries = [];
 
   @override
   void initState() {
@@ -32,6 +35,8 @@ class _LocalPlaylistsPageState extends State<LocalPlaylistsPage> {
     playlists = await widget.store.loadPlaylists();
     favoriteIds = await widget.store.loadFavorites();
     songs = await widget.store.loadLibrary();
+    recentEntries = await widget.store.loadRecentPlayedSongs(limit: 20);
+    mostPlayedEntries = await widget.store.loadMostPlayedSongs(limit: 20);
     if (mounted) setState(() {});
   }
 
@@ -109,6 +114,50 @@ class _LocalPlaylistsPageState extends State<LocalPlaylistsPage> {
           ],
         ),
         const SizedBox(height: 12),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.history),
+            title: const Text('Recently Played'),
+            subtitle: Text(
+              recentEntries.isEmpty
+                  ? 'Belum ada riwayat putar'
+                  : '${recentEntries.length} lagu terakhir',
+            ),
+            onTap: () => Navigator.of(context)
+                .push(
+                  MaterialPageRoute(
+                    builder: (_) => PlaybackInsightsPage(
+                      player: widget.player,
+                      store: widget.store,
+                      mode: PlaybackInsightsMode.recent,
+                    ),
+                  ),
+                )
+                .then((_) => load()),
+          ),
+        ),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.bar_chart_rounded),
+            title: const Text('Most Played'),
+            subtitle: Text(
+              mostPlayedEntries.isEmpty
+                  ? 'Belum ada statistik putar'
+                  : '${mostPlayedEntries.length} lagu teratas',
+            ),
+            onTap: () => Navigator.of(context)
+                .push(
+                  MaterialPageRoute(
+                    builder: (_) => PlaybackInsightsPage(
+                      player: widget.player,
+                      store: widget.store,
+                      mode: PlaybackInsightsMode.mostPlayed,
+                    ),
+                  ),
+                )
+                .then((_) => load()),
+          ),
+        ),
         Card(
           child: ListTile(
             leading: const Icon(Icons.favorite),
