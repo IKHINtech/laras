@@ -90,6 +90,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
   Future<_LyricsShareConfig?> _showShareComposer() {
     var selectedTheme = LyricsShareTheme.laras;
     var selectedFormat = LyricsShareFormat.square;
+    var showArtworkBackground = true;
+    var showFooter = true;
     return showModalBottomSheet<_LyricsShareConfig>(
       context: context,
       isScrollControlled: true,
@@ -177,6 +179,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                               config: _LyricsShareConfig(
                                 theme: selectedTheme,
                                 format: selectedFormat,
+                                showArtworkBackground: showArtworkBackground,
+                                showFooter: showFooter,
                               ),
                             ),
                             const SizedBox(height: 20),
@@ -225,6 +229,35 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                                   ),
                               ],
                             ),
+                            const SizedBox(height: 18),
+                            Text(
+                              'Opsi card',
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    color: palette.foreground,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: [
+                                _ShareToggleChip(
+                                  label: 'Artwork background',
+                                  selected: showArtworkBackground,
+                                  onTap: () => setModalState(() {
+                                    showArtworkBackground = !showArtworkBackground;
+                                  }),
+                                ),
+                                _ShareToggleChip(
+                                  label: 'Footer info lagu',
+                                  selected: showFooter,
+                                  onTap: () => setModalState(() {
+                                    showFooter = !showFooter;
+                                  }),
+                                ),
+                              ],
+                            ),
                             const SizedBox(height: 20),
                             SizedBox(
                               width: double.infinity,
@@ -233,6 +266,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                                   _LyricsShareConfig(
                                     theme: selectedTheme,
                                     format: selectedFormat,
+                                    showArtworkBackground: showArtworkBackground,
+                                    showFooter: showFooter,
                                   ),
                                 ),
                                 icon: const Icon(Icons.ios_share_rounded),
@@ -282,6 +317,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                     lines: _selectedLyrics,
                     theme: config.theme,
                     format: config.format,
+                    showArtworkBackground: config.showArtworkBackground,
+                    showFooter: config.showFooter,
                   ),
                 ),
               ),
@@ -691,10 +728,14 @@ class _LyricsShareConfig {
   const _LyricsShareConfig({
     required this.theme,
     required this.format,
+    required this.showArtworkBackground,
+    required this.showFooter,
   });
 
   final LyricsShareTheme theme;
   final LyricsShareFormat format;
+  final bool showArtworkBackground;
+  final bool showFooter;
 }
 
 class ArtworkFileImage extends StatelessWidget {
@@ -826,6 +867,8 @@ class LyricsShareCard extends StatelessWidget {
     required this.lines,
     required this.theme,
     required this.format,
+    required this.showArtworkBackground,
+    required this.showFooter,
   });
 
   final Song song;
@@ -833,6 +876,8 @@ class LyricsShareCard extends StatelessWidget {
   final List<LyricLine> lines;
   final LyricsShareTheme theme;
   final LyricsShareFormat format;
+  final bool showArtworkBackground;
+  final bool showFooter;
 
   @override
   Widget build(BuildContext context) {
@@ -863,7 +908,7 @@ class LyricsShareCard extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            if (artworkUri != null)
+            if (showArtworkBackground && artworkUri != null)
               Positioned.fill(
                 child: Opacity(
                   opacity: 0.14,
@@ -892,30 +937,48 @@ class LyricsShareCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: story ? 18 : 20,
+                      vertical: story ? 9 : 10,
                     ),
                     decoration: BoxDecoration(
                       color: palette.badgeBackground,
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(color: palette.outline),
                     ),
-                    child: Image.asset(
-                      theme.logoAsset,
-                      width: story ? 34 : 36,
-                      height: story ? 34 : 36,
-                      fit: BoxFit.contain,
-                      filterQuality: FilterQuality.high,
-                      errorBuilder: (_, __, ___) => Text(
-                        'L',
-                        style: TextStyle(
-                          color: palette.badgeForeground,
-                          fontWeight: FontWeight.w700,
-                          fontSize: story ? 26 : 28,
-                          letterSpacing: 0.4,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset(
+                          theme.logoAsset,
+                          width: story ? 34 : 38,
+                          height: story ? 34 : 38,
+                          fit: BoxFit.contain,
+                          filterQuality: FilterQuality.high,
+                          errorBuilder: (_, __, ___) => Text(
+                            'L',
+                            style: TextStyle(
+                              color: palette.badgeForeground,
+                              fontWeight: FontWeight.w700,
+                              fontSize: story ? 26 : 28,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
                         ),
-                      ),
+                        Transform.translate(
+                          offset: Offset(story ? -10 : -12, 0),
+                          child: Text(
+                            'aras',
+                            style: TextStyle(
+                              color: palette.badgeForeground,
+                              fontWeight: FontWeight.w600,
+                              fontSize: story ? 24 : 26,
+                              letterSpacing: 0.0,
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   SizedBox(height: story ? 68 : 48),
@@ -923,55 +986,64 @@ class LyricsShareCard extends StatelessWidget {
                     child: _ShareLyricsBlock(
                       text: lineText,
                       style: lyricStyle,
-                      maxLines: story ? 14 : 10,
+                      maxLines: showFooter ? (story ? 14 : 10) : (story ? 17 : 13),
                       fadeColor: palette.gradient.last,
                     ),
                   ),
-                  SizedBox(height: story ? 28 : 22),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: story ? 22 : 24,
-                      vertical: story ? 16 : 18,
-                    ),
-                    decoration: BoxDecoration(
-                      color: palette.badgeBackground,
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: palette.outline),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          song.title,
-                          style: TextStyle(
-                            color: palette.foreground,
-                            fontSize: story ? 32 : 34,
-                            fontWeight: FontWeight.w700,
+                  if (showFooter) ...[
+                    SizedBox(height: story ? 28 : 22),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: story ? 22 : 24,
+                        vertical: story ? 16 : 18,
+                      ),
+                      decoration: BoxDecoration(
+                        color: palette.badgeBackground,
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: palette.outline),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            song.title,
+                            style: TextStyle(
+                              color: palette.foreground,
+                              fontSize: story ? 32 : 34,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          song.artistLabel,
-                          style: TextStyle(
-                            color: palette.accent,
-                            fontSize: story ? 26 : 28,
-                            fontWeight: FontWeight.w500,
+                          const SizedBox(height: 8),
+                          Text(
+                            song.artistLabel,
+                            style: TextStyle(
+                              color: palette.accent,
+                              fontSize: story ? 26 : 28,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  SizedBox(height: story ? 18 : 14),
-                  Text(
-                    story ? 'Instagram Story • ${format.description}' : 'Shared from Laras',
-                    style: TextStyle(
-                      color: palette.foregroundMuted,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w500,
+                    SizedBox(height: story ? 18 : 14),
+                  ] else
+                    SizedBox(height: story ? 18 : 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      story
+                          ? 'Instagram Story • ${format.description}'
+                          : 'Shared from Laras',
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        color: palette.foregroundMuted,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -1100,6 +1172,8 @@ class _LyricsSharePreview extends StatelessWidget {
                   lines: lines,
                   theme: config.theme,
                   format: config.format,
+                  showArtworkBackground: config.showArtworkBackground,
+                  showFooter: config.showFooter,
                 ),
               ),
             ),
@@ -1211,6 +1285,60 @@ class _ShareFormatChip extends StatelessWidget {
               format.description,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ShareToggleChip extends StatelessWidget {
+  const _ShareToggleChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected
+              ? scheme.secondary.withValues(alpha: 0.16)
+              : scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selected
+                ? scheme.secondary.withValues(alpha: 0.78)
+                : scheme.outlineVariant.withValues(alpha: 0.42),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              selected ? Icons.check_circle_rounded : Icons.circle_outlined,
+              size: 18,
+              color: selected ? scheme.secondary : scheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w600,
                   ),
             ),
           ],
