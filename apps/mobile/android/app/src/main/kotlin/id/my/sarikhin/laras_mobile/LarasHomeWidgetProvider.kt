@@ -6,8 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.BitmapFactory
-import android.os.Build
 import android.net.Uri
+import android.util.TypedValue
+import android.view.View
 import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
@@ -22,18 +23,27 @@ class LarasHomeWidgetProvider : HomeWidgetProvider() {
     ) {
         appWidgetIds.forEach { widgetId ->
             val views = RemoteViews(context.packageName, R.layout.laras_home_widget)
+            val options = appWidgetManager.getAppWidgetOptions(widgetId)
+            val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
+            val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+            val compact = minWidth < 250 || minHeight < 110
             val title = widgetData.getString(KEY_TITLE, "Tidak ada lagu") ?: "Tidak ada lagu"
             val artist = widgetData.getString(KEY_ARTIST, "Putar lagu dari Laras") ?: "Putar lagu dari Laras"
             val album = widgetData.getString(KEY_ALBUM, "Offline player") ?: "Offline player"
             val isPlaying = widgetData.getBoolean(KEY_IS_PLAYING, false)
             val artworkPath = widgetData.getString(KEY_ARTWORK_PATH, null)
+            val hasSong = title != "Tidak ada lagu"
 
             views.setTextViewText(R.id.widget_title, title)
             views.setTextViewText(R.id.widget_artist, artist)
             views.setTextViewText(R.id.widget_album, album)
             views.setTextViewText(
+                R.id.widget_hint,
+                if (hasSong) album else "Offline-first library",
+            )
+            views.setTextViewText(
                 R.id.widget_state,
-                if (isPlaying) "Sedang diputar" else "Jeda",
+                if (isPlaying) "Memutar" else if (hasSong) "Jeda" else "Siap",
             )
 
             val artworkBitmap =
@@ -48,6 +58,8 @@ class LarasHomeWidgetProvider : HomeWidgetProvider() {
             } else {
                 views.setImageViewResource(R.id.widget_artwork, R.drawable.ic_stat_laras)
             }
+
+            applySizing(context, views, compact, hasSong)
 
             views.setOnClickPendingIntent(
                 R.id.widget_root,
@@ -85,6 +97,44 @@ class LarasHomeWidgetProvider : HomeWidgetProvider() {
             Uri.parse(uri),
         )
     }
+
+    private fun applySizing(
+        context: Context,
+        views: RemoteViews,
+        compact: Boolean,
+        hasSong: Boolean,
+    ) {
+        views.setViewVisibility(R.id.widget_album, if (compact) View.GONE else View.VISIBLE)
+        views.setViewVisibility(R.id.widget_hint, if (compact) View.GONE else View.VISIBLE)
+        views.setViewVisibility(
+            R.id.widget_previous,
+            if (compact || !hasSong) View.GONE else View.VISIBLE,
+        )
+        views.setViewVisibility(
+            R.id.widget_next,
+            if (compact || !hasSong) View.GONE else View.VISIBLE,
+        )
+        views.setViewVisibility(
+            R.id.widget_brand,
+            if (compact) View.GONE else View.VISIBLE,
+        )
+        val artworkSize = if (compact) 60 else 72
+        val titleSize = if (compact) 15f else 17f
+        val artistSize = if (compact) 12f else 13f
+        val hintTextSize = if (compact) 10f else 11f
+        views.setInt(R.id.widget_artwork, "setMaxWidth", dp(context, artworkSize))
+        views.setInt(R.id.widget_artwork, "setMaxHeight", dp(context, artworkSize))
+        views.setTextViewTextSize(R.id.widget_title, TypedValue.COMPLEX_UNIT_SP, titleSize)
+        views.setTextViewTextSize(R.id.widget_artist, TypedValue.COMPLEX_UNIT_SP, artistSize)
+        views.setTextViewTextSize(R.id.widget_hint, TypedValue.COMPLEX_UNIT_SP, hintTextSize)
+    }
+
+    private fun dp(context: Context, value: Int): Int =
+        TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            value.toFloat(),
+            context.resources.displayMetrics,
+        ).toInt()
 
     companion object {
         private const val KEY_TITLE = "laras_widget_title"

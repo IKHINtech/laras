@@ -49,6 +49,12 @@ class _HomeShellState extends State<HomeShell> {
     _homeWidgetCommandSub = HomeWidgetCommandBus.stream.listen(
       _handleHomeWidgetCommand,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final pending = HomeWidgetCommandBus.takePending();
+      if (pending != null) {
+        unawaited(_handleHomeWidgetCommand(pending));
+      }
+    });
   }
 
   @override
@@ -60,6 +66,7 @@ class _HomeShellState extends State<HomeShell> {
 
   Future<void> _handleHomeWidgetCommand(Uri uri) async {
     if (uri.scheme != 'laras') return;
+    await player.ready;
 
     switch (uri.host) {
       case 'now-playing':

@@ -11,6 +11,7 @@ class LocalMusicStore {
   static const _playlistKey = 'laras.local.playlists';
   static const _libraryKey = 'laras.local.library_cache';
   static const _migrationKey = 'laras.local.sqlite_migrated_v1';
+  static const _playbackSessionKey = 'laras.local.playback_session_v1';
 
   Future<Database> get _db async {
     final db = await LocalDatabase.instance.database;
@@ -257,6 +258,20 @@ class LocalMusicStore {
     return rows.map(_songFromRow).toList();
   }
 
+  Future<List<Song>> loadSongsByIds(List<String> ids) async {
+    if (ids.isEmpty) return const [];
+    final db = await _db;
+    final placeholders = List.filled(ids.length, '?').join(', ');
+    final rows = await db.rawQuery(
+      'SELECT * FROM local_songs WHERE id IN ($placeholders)',
+      ids,
+    );
+    final songsById = {
+      for (final row in rows) (row['id'] as String): _songFromRow(row),
+    };
+    return ids.map((id) => songsById[id]).whereType<Song>().toList();
+  }
+
   Future<void> saveLibrary(List<Song> songs) async {
     final db = await _db;
     await db.transaction((txn) async {
@@ -292,6 +307,37 @@ class LocalMusicStore {
         'is_active': endTime == null ? 0 : 1,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> savePlaybackSession({
+    required List<String> songIds,
+    required int currentIndex,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final payload = jsonEncode({
+      'song_ids': songIds,
+      'current_index': currentIndex,
+    });
+    await prefs.setString(_playbackSessionKey, payload);
+  }
+
+  Future<PlaybackSession?> loadPlaybackSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_playbackSessionKey);
+    if (raw == null || raw.isEmpty) return null;
+    final json = jsonDecode(raw) as Map<String, dynamic>;
+    final songIds = (json['song_ids'] as List<dynamic>? ?? const [])
+        .map((e) => e.toString())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (songIds.isEmpty) return null;
+    return PlaybackSession(
+      songIds: songIds,
+      currentIndex: (json['current_index'] as int? ?? 0).clamp(
+        0,
+        songIds.length - 1,
+      ),
     );
   }
 
@@ -669,6 +715,16 @@ class PlaybackHistory {
   final int lastPositionMs;
   final DateTime playedAt;
   final int playCount;
+}
+
+class PlaybackSession {
+  const PlaybackSession({
+    required this.songIds,
+    required this.currentIndex,
+  });
+
+  final List<String> songIds;
+  final int currentIndex;
 }
 
 class RecentPlaybackEntry {

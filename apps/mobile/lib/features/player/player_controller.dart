@@ -39,6 +39,12 @@ class PlayerController extends ChangeNotifier {
         final next = value ?? 0;
         if (next != currentIndex) {
           currentIndex = next;
+          unawaited(
+            store.savePlaybackSession(
+              songIds: queue.map((e) => e.id).toList(),
+              currentIndex: currentIndex,
+            ),
+          );
           notifyListeners();
         }
         _scheduleWidgetSync();
@@ -82,6 +88,7 @@ class PlayerController extends ChangeNotifier {
     );
     _configureAudioSession();
     _restoreSleepTimer();
+    unawaited(_restorePlaybackSession());
     _scheduleWidgetSync();
   }
 
@@ -99,11 +106,13 @@ class PlayerController extends ChangeNotifier {
   String? _lastWidgetSongId;
   bool? _lastWidgetPlaying;
   double _preDuckVolume = 1.0;
+  final Completer<void> _readyCompleter = Completer<void>();
 
   Song? get currentSong => queue.isEmpty ? null : queue[currentIndex];
   Duration get position => player.position;
   Duration get duration => player.duration ?? Duration.zero;
   bool get isPlaying => player.playing;
+  Future<void> get ready => _readyCompleter.future;
   bool get hasPrevious => player.hasPrevious;
   bool get hasNext => player.hasNext;
   TrackPlayMode get trackPlayMode {
@@ -136,6 +145,10 @@ class PlayerController extends ChangeNotifier {
       incrementPlayCount: true,
     );
     await player.play();
+    await store.savePlaybackSession(
+      songIds: songs.map((e) => e.id).toList(),
+      currentIndex: index,
+    );
     _scheduleWidgetSync();
     notifyListeners();
   }
@@ -181,8 +194,49 @@ class PlayerController extends ChangeNotifier {
     if (index < 0 || index >= queue.length) return;
     await player.seek(Duration.zero, index: index);
     currentIndex = index;
+    await store.savePlaybackSession(
+      songIds: queue.map((e) => e.id).toList(),
+      currentIndex: currentIndex,
+    );
     _scheduleWidgetSync();
     notifyListeners();
+  }
+
+  Future<void> _restorePlaybackSession() async {
+    try {
+      final session = await store.loadPlaybackSession();
+      if (session == null) {
+        if (!_readyCompleter.isCompleted) _readyCompleter.complete();
+        return;
+      }
+      final songs = await store.loadSongsByIds(session.songIds);
+      if (songs.isEmpty) {
+        if (!_readyCompleter.isCompleted) _readyCompleter.complete();
+        return;
+      }
+      queue = songs;
+      currentIndex = session.currentIndex.clamp(0, songs.length - 1);
+      final sources = await Future.wait(songs.map(_createSource));
+      await player.setAudioSource(
+        ConcatenatingAudioSource(children: sources),
+        initialIndex: currentIndex,
+        preload: false,
+      );
+      final current = currentSong;
+      if (current != null) {
+        final history = await store.loadPlaybackHistory(current.id);
+        final positionMs = history?.lastPositionMs ?? 0;
+        if (positionMs > 0) {
+          await player.seek(Duration(milliseconds: positionMs), index: currentIndex);
+        }
+      }
+      notifyListeners();
+      _scheduleWidgetSync();
+    } catch (_) {
+      // Ignore restore failures and allow app to continue with a fresh state.
+    } finally {
+      if (!_readyCompleter.isCompleted) _readyCompleter.complete();
+    }
   }
 
   Future<void> setSleepTimer(Duration duration) async {
@@ -280,6 +334,10 @@ class PlayerController extends ChangeNotifier {
   Future<void> _persistCurrentPlayback() async {
     final song = currentSong;
     if (song == null) return;
+    await store.savePlaybackSession(
+      songIds: queue.map((e) => e.id).toList(),
+      currentIndex: currentIndex,
+    );
     await store.savePlaybackSnapshot(
       songId: song.id,
       positionMs: player.position.inMilliseconds,
