@@ -5,6 +5,7 @@ import '../../core/equalizer_bridge.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
 import '../../core/theme_controller.dart';
+import '../library/local_music_store.dart';
 import '../auth/login_page.dart';
 import '../player/player_controller.dart';
 
@@ -14,6 +15,7 @@ class SettingsPage extends StatefulWidget {
     required this.isLoggedIn,
     required this.api,
     required this.authStore,
+    required this.store,
     required this.player,
     required this.themeController,
     required this.appIconController,
@@ -23,6 +25,7 @@ class SettingsPage extends StatefulWidget {
   final bool isLoggedIn;
   final ApiClient api;
   final AuthStore authStore;
+  final LocalMusicStore store;
   final PlayerController player;
   final ThemeController themeController;
   final AppIconController appIconController;
@@ -161,128 +164,124 @@ class _SettingsPageState extends State<SettingsPage> {
           runSpacing: 12,
           children: _seedOptions
               .map(
-                (option) => InkWell(
-                  onTap: () => theme.setSeedColor(option.color),
-                  borderRadius: BorderRadius.circular(18),
-                  child: Container(
-                    width: 92,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: theme.seedColor.toARGB32() ==
-                                option.color.toARGB32()
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context)
-                                .colorScheme
-                                .outlineVariant
-                                .withValues(alpha: 0.35),
-                        width: theme.seedColor.toARGB32() ==
-                                option.color.toARGB32()
-                            ? 2
-                            : 1,
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: option.color,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: theme.seedColor.toARGB32() ==
-                                      option.color.toARGB32()
-                                  ? Theme.of(context).colorScheme.onSurface
-                                  : Colors.transparent,
-                              width: 3,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          option.label,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelSmall,
-                        ),
-                      ],
-                    ),
-                  ),
+            (option) => InkWell(
+              onTap: () => theme.setSeedColor(option.color),
+              borderRadius: BorderRadius.circular(18),
+              child: Container(
+                width: 92,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
                 ),
-              )
-              .followedBy([
-                InkWell(
-                  onTap: _openSeedColorPicker,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerLow,
                   borderRadius: BorderRadius.circular(18),
-                  child: Container(
-                    width: 92,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: Theme.of(context)
+                  border: Border.all(
+                    color: theme.seedColor.toARGB32() == option.color.toARGB32()
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context)
                             .colorScheme
                             .outlineVariant
                             .withValues(alpha: 0.35),
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: const SweepGradient(
-                              colors: [
-                                Colors.red,
-                                Colors.orange,
-                                Colors.yellow,
-                                Colors.green,
-                                Colors.cyan,
-                                Colors.blue,
-                                Colors.purple,
-                                Colors.red,
-                              ],
-                            ),
-                            border: Border.all(
-                              color:
-                                  Theme.of(context).colorScheme.outlineVariant,
-                            ),
-                          ),
-                          child: Icon(
-                            Icons.palette_outlined,
-                            size: 18,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Custom',
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelSmall,
-                        ),
-                      ],
-                    ),
+                    width: theme.seedColor.toARGB32() == option.color.toARGB32()
+                        ? 2
+                        : 1,
                   ),
                 ),
-              ])
-              .toList(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: option.color,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: theme.seedColor.toARGB32() ==
+                                  option.color.toARGB32()
+                              ? Theme.of(context).colorScheme.onSurface
+                              : Colors.transparent,
+                          width: 3,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      option.label,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+              .followedBy([
+            InkWell(
+              onTap: _openSeedColorPicker,
+              borderRadius: BorderRadius.circular(18),
+              child: Container(
+                width: 92,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const SweepGradient(
+                          colors: [
+                            Colors.red,
+                            Colors.orange,
+                            Colors.yellow,
+                            Colors.green,
+                            Colors.cyan,
+                            Colors.blue,
+                            Colors.purple,
+                            Colors.red,
+                          ],
+                        ),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.palette_outlined,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Custom',
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ]).toList(),
         ),
         const SizedBox(height: 20),
         Text('App Icon', style: Theme.of(context).textTheme.titleMedium),
@@ -374,6 +373,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   authStore: widget.authStore,
                   themeController: widget.themeController,
                   appIconController: widget.appIconController,
+                  localStore: widget.store,
+                  player: widget.player,
                 ),
               ),
             ),
@@ -389,6 +390,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   authStore: widget.authStore,
                   themeController: widget.themeController,
                   appIconController: widget.appIconController,
+                  localStore: widget.store,
+                  player: widget.player,
                   initialRegisterMode: true,
                 ),
               ),
@@ -510,7 +513,8 @@ class _AppIconPreviewCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.78),
+                color:
+                    theme.textTheme.bodySmall?.color?.withValues(alpha: 0.78),
               ),
             ),
           ],

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:just_audio_background/just_audio_background.dart';
@@ -9,6 +11,8 @@ import 'core/home_widget_command_bus.dart';
 import 'core/theme_controller.dart';
 import 'features/auth/welcome_page.dart';
 import 'features/home_shell.dart';
+import 'features/library/local_music_store.dart';
+import 'features/player/player_controller.dart';
 
 const apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
@@ -35,11 +39,15 @@ Future<void> main() async {
   await themeController.load();
   final appIconController = AppIconController(appSettingsStore);
   await appIconController.load();
+  final localStore = LocalMusicStore();
+  final playerController = PlayerController(store: localStore);
   runApp(
     LarasApp(
       authStore: authStore,
       themeController: themeController,
       appIconController: appIconController,
+      localStore: localStore,
+      player: playerController,
     ),
   );
 }
@@ -55,10 +63,14 @@ class LarasApp extends StatefulWidget {
     required this.authStore,
     required this.themeController,
     required this.appIconController,
+    required this.localStore,
+    required this.player,
   });
   final AuthStore authStore;
   final ThemeController themeController;
   final AppIconController appIconController;
+  final LocalMusicStore localStore;
+  final PlayerController player;
 
   @override
   State<LarasApp> createState() => _LarasAppState();
@@ -76,8 +88,10 @@ class _WidgetRouteSinkState extends State<_WidgetRouteSink> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        Navigator.of(context).maybePop();
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route != null && !route.isFirst) {
+        Navigator.of(context).removeRoute(route);
       }
     });
   }
@@ -108,6 +122,7 @@ class _LarasAppState extends State<LarasApp> {
   void dispose() {
     widget.themeController.removeListener(_refresh);
     widget.appIconController.removeListener(_refresh);
+    unawaited(widget.player.close());
     super.dispose();
   }
 
@@ -132,12 +147,16 @@ class _LarasAppState extends State<LarasApp> {
                   authStore: widget.authStore,
                   themeController: widget.themeController,
                   appIconController: widget.appIconController,
+                  localStore: widget.localStore,
+                  player: widget.player,
                 )
               : HomeShell(
                   api: api,
                   authStore: widget.authStore,
                   themeController: widget.themeController,
                   appIconController: widget.appIconController,
+                  localStore: widget.localStore,
+                  player: widget.player,
                   initialIndex: 0,
                 ),
     );
@@ -179,7 +198,7 @@ class _LarasAppState extends State<LarasApp> {
         queryParameters: {'action': action},
       );
     }
-    if (uri.path.contains('now-playing')) {
+    if (uri.host == 'now-playing' || uri.path.contains('now-playing')) {
       return Uri(scheme: 'laras', host: 'now-playing');
     }
     return null;
@@ -229,16 +248,14 @@ class _LarasAppState extends State<LarasApp> {
       useMaterial3: true,
       scaffoldBackgroundColor: isDark ? _larasBackground : null,
       canvasColor: isDark ? _larasBackground : null,
-      dividerColor: isDark
-          ? _larasTextSecondary.withValues(alpha: 0.16)
-          : null,
+      dividerColor: isDark ? _larasTextSecondary.withValues(alpha: 0.16) : null,
       textTheme: ThemeData(
         brightness: brightness,
         useMaterial3: true,
       ).textTheme.apply(
-        bodyColor: isDark ? _larasText : null,
-        displayColor: isDark ? _larasText : null,
-      ),
+            bodyColor: isDark ? _larasText : null,
+            displayColor: isDark ? _larasText : null,
+          ),
     );
 
     return theme.copyWith(
@@ -286,9 +303,8 @@ class _LarasAppState extends State<LarasApp> {
       ),
       chipTheme: theme.chipTheme.copyWith(
         backgroundColor: isDark ? _larasSurfaceHigh : scheme.surfaceContainer,
-        selectedColor: isDark
-            ? seed.withValues(alpha: 0.24)
-            : scheme.secondaryContainer,
+        selectedColor:
+            isDark ? seed.withValues(alpha: 0.24) : scheme.secondaryContainer,
         side: BorderSide(
           color: isDark
               ? _larasTextSecondary.withValues(alpha: 0.14)

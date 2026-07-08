@@ -22,12 +22,16 @@ class HomeShell extends StatefulWidget {
     required this.authStore,
     required this.themeController,
     required this.appIconController,
+    required this.localStore,
+    required this.player,
     this.initialIndex = 0,
   });
   final ApiClient api;
   final AuthStore authStore;
   final ThemeController themeController;
   final AppIconController appIconController;
+  final LocalMusicStore localStore;
+  final PlayerController player;
   final int initialIndex;
 
   @override
@@ -36,16 +40,13 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   late int index;
-  late final PlayerController player;
-  late final LocalMusicStore localStore;
   StreamSubscription<Uri>? _homeWidgetCommandSub;
+  bool _nowPlayingRouteOpen = false;
 
   @override
   void initState() {
     super.initState();
     index = widget.initialIndex;
-    localStore = LocalMusicStore();
-    player = PlayerController(store: localStore);
     _homeWidgetCommandSub = HomeWidgetCommandBus.stream.listen(
       _handleHomeWidgetCommand,
     );
@@ -60,34 +61,42 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void dispose() {
     _homeWidgetCommandSub?.cancel();
-    player.close();
     super.dispose();
   }
 
   Future<void> _handleHomeWidgetCommand(Uri uri) async {
     if (uri.scheme != 'laras') return;
-    await player.ready;
+    await widget.player.ready;
 
     switch (uri.host) {
       case 'now-playing':
-        if (!mounted || player.currentSong == null) return;
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => NowPlayingPage(
-              controller: player,
-              store: localStore,
+        if (!mounted ||
+            widget.player.currentSong == null ||
+            _nowPlayingRouteOpen) {
+          return;
+        }
+        _nowPlayingRouteOpen = true;
+        try {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => NowPlayingPage(
+                controller: widget.player,
+                store: widget.localStore,
+              ),
             ),
-          ),
-        );
+          );
+        } finally {
+          _nowPlayingRouteOpen = false;
+        }
         return;
       case 'player':
         final action = uri.queryParameters['action'];
         if (action == 'previous') {
-          await player.previous();
+          await widget.player.previous();
         } else if (action == 'play-pause') {
-          await player.playOrPause();
+          await widget.player.playOrPause();
         } else if (action == 'next') {
-          await player.next();
+          await widget.player.next();
         }
         return;
     }
@@ -97,20 +106,22 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     final showShellAppBar = index != 0;
     final pages = [
-      LocalLibraryPage(player: player, store: localStore),
+      LocalLibraryPage(player: widget.player, store: widget.localStore),
       ServerLibraryPage(
         api: widget.api,
         authStore: widget.authStore,
         themeController: widget.themeController,
         appIconController: widget.appIconController,
-        player: player,
+        store: widget.localStore,
+        player: widget.player,
       ),
-      LocalPlaylistsPage(player: player, store: localStore),
+      LocalPlaylistsPage(player: widget.player, store: widget.localStore),
       SettingsPage(
         isLoggedIn: widget.authStore.token != null,
         api: widget.api,
         authStore: widget.authStore,
-        player: player,
+        store: widget.localStore,
+        player: widget.player,
         themeController: widget.themeController,
         appIconController: widget.appIconController,
         onLogout: () async {
@@ -170,15 +181,18 @@ class _HomeShellState extends State<HomeShell> {
             ),
           ),
           StreamBuilder(
-            stream: player.player.sequenceStateStream,
+            stream: widget.player.player.sequenceStateStream,
             builder: (context, snapshot) {
-              final hasMiniPlayer = player.currentSong != null;
+              final hasMiniPlayer = widget.player.currentSong != null;
               return AnimatedSize(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOut,
                 alignment: Alignment.bottomCenter,
                 child: hasMiniPlayer
-                    ? MiniPlayer(controller: player, store: localStore)
+                    ? MiniPlayer(
+                        controller: widget.player,
+                        store: widget.localStore,
+                      )
                     : const SizedBox.shrink(),
               );
             },
