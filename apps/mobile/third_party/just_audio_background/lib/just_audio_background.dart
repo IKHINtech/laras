@@ -346,7 +346,7 @@ class _JustAudioPlayer extends AudioPlayerPlatform {
 
 class _PlayerAudioHandler extends BaseAudioHandler
     with QueueHandler, SeekHandler {
-  static const _headsetDoubleClickWindow = Duration(milliseconds: 350);
+  static const _headsetClickWindow = Duration(milliseconds: 350);
 
   final _lock = Lock();
   var _playerCompleter = _ValueCompleter<AudioPlayerPlatform>();
@@ -644,19 +644,13 @@ class _PlayerAudioHandler extends BaseAudioHandler
     switch (button) {
       case MediaButton.media:
         _headsetClickCount += 1;
-        if (_headsetClickCount == 1) {
-          _headsetClickTimer?.cancel();
-          _headsetClickTimer = Timer(_headsetDoubleClickWindow, () {
-            _headsetClickTimer = null;
-            _headsetClickCount = 0;
-            unawaited(super.click(MediaButton.media));
-          });
-        } else {
-          _headsetClickTimer?.cancel();
+        _headsetClickTimer?.cancel();
+        _headsetClickTimer = Timer(_headsetClickWindow, () {
+          final clickCount = _headsetClickCount;
           _headsetClickTimer = null;
           _headsetClickCount = 0;
-          await skipToNext();
-        }
+          unawaited(_handleHeadsetMediaClicks(clickCount));
+        });
         break;
       case MediaButton.next:
         await skipToNext();
@@ -664,6 +658,16 @@ class _PlayerAudioHandler extends BaseAudioHandler
       case MediaButton.previous:
         await skipToPrevious();
         break;
+    }
+  }
+
+  Future<void> _handleHeadsetMediaClicks(int clickCount) async {
+    if (clickCount <= 1) {
+      await super.click(MediaButton.media);
+    } else if (clickCount == 2) {
+      await skipToNext();
+    } else {
+      await skipToPrevious();
     }
   }
 
