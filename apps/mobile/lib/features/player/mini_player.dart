@@ -23,11 +23,10 @@ class MiniPlayer extends StatelessWidget {
         return Material(
           elevation: 10,
           child: ListTile(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    NowPlayingPage(controller: controller, store: store),
-              ),
+            onTap: () => NowPlayingRoute.open(
+              context,
+              controller: controller,
+              store: store,
             ),
             leading: _MiniPlayerArtwork(artworkId: song.artworkId),
             title: _MiniMarqueeText(
@@ -110,7 +109,10 @@ class _MiniPlayerArtworkState extends State<_MiniPlayerArtwork> {
         quality: 70,
         format: ArtworkFormat.JPEG,
       );
-      if (!mounted || widget.artworkId != artworkId || bytes == null || bytes.isEmpty) {
+      if (!mounted ||
+          widget.artworkId != artworkId ||
+          bytes == null ||
+          bytes.isEmpty) {
         return;
       }
       _cache[artworkId] = bytes;

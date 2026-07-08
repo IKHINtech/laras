@@ -7,6 +7,35 @@ import 'lyrics_detail_page.dart';
 import 'player_controller.dart';
 import 'lyrics_service.dart';
 
+class NowPlayingRoute {
+  NowPlayingRoute._();
+
+  static const name = '/now-playing';
+  static bool _open = false;
+
+  static Future<void> open(
+    BuildContext context, {
+    required PlayerController controller,
+    required LocalMusicStore store,
+  }) async {
+    if (_open || controller.currentSong == null) return;
+    _open = true;
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          settings: const RouteSettings(name: name),
+          builder: (_) => NowPlayingPage(
+            controller: controller,
+            store: store,
+          ),
+        ),
+      );
+    } finally {
+      _open = false;
+    }
+  }
+}
+
 class NowPlayingPage extends StatefulWidget {
   const NowPlayingPage({
     super.key,

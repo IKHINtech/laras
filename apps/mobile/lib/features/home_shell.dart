@@ -41,7 +41,6 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   late int index;
   StreamSubscription<Uri>? _homeWidgetCommandSub;
-  bool _nowPlayingRouteOpen = false;
 
   @override
   void initState() {
@@ -70,24 +69,12 @@ class _HomeShellState extends State<HomeShell> {
 
     switch (uri.host) {
       case 'now-playing':
-        if (!mounted ||
-            widget.player.currentSong == null ||
-            _nowPlayingRouteOpen) {
-          return;
-        }
-        _nowPlayingRouteOpen = true;
-        try {
-          await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => NowPlayingPage(
-                controller: widget.player,
-                store: widget.localStore,
-              ),
-            ),
-          );
-        } finally {
-          _nowPlayingRouteOpen = false;
-        }
+        if (!mounted) return;
+        await NowPlayingRoute.open(
+          context,
+          controller: widget.player,
+          store: widget.localStore,
+        );
         return;
       case 'player':
         final action = uri.queryParameters['action'];
