@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import '../library/local_music_store.dart';
 import '../library/song.dart';
@@ -177,14 +176,32 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                         format: _format,
                       ),
                       const SizedBox(height: 12),
-                      StreamBuilder<PlayerState>(
-                        stream: widget.controller.player.playerStateStream,
-                        builder: (context, snapshot) {
-                          final playing = snapshot.data?.playing ??
-                              widget.controller.isPlaying;
+                      AnimatedBuilder(
+                        animation: widget.controller,
+                        builder: (context, _) {
+                          final playing = widget.controller.isPlaying;
+                          final trackMode = widget.controller.trackPlayMode;
+                          final sleepLabel = widget.controller.sleepTimerLabel;
                           return Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
+                              _ControlSideButton(
+                                icon: switch (trackMode) {
+                                  TrackPlayMode.normal => Icons.repeat,
+                                  TrackPlayMode.shuffle => Icons.shuffle,
+                                  TrackPlayMode.repeatAll => Icons.repeat,
+                                  TrackPlayMode.repeatOne => Icons.repeat_one,
+                                },
+                                label: switch (trackMode) {
+                                  TrackPlayMode.normal => 'Normal',
+                                  TrackPlayMode.shuffle => 'Shuffle',
+                                  TrackPlayMode.repeatAll => 'Loop',
+                                  TrackPlayMode.repeatOne => 'Loop 1',
+                                },
+                                active: trackMode != TrackPlayMode.normal,
+                                onPressed: widget.controller.cycleTrackPlayMode,
+                              ),
+                              const SizedBox(width: 4),
                               IconButton(
                                 iconSize: 36,
                                 onPressed: widget.controller.hasPrevious
@@ -211,6 +228,17 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                                     ? widget.controller.next
                                     : null,
                                 icon: const Icon(Icons.skip_next),
+                              ),
+                              const SizedBox(width: 4),
+                              _ControlSideButton(
+                                icon: sleepLabel == 'Off'
+                                    ? Icons.timer_off_outlined
+                                    : Icons.timer_outlined,
+                                label: sleepLabel == 'Off'
+                                    ? 'Off'
+                                    : '${sleepLabel}m',
+                                active: sleepLabel != 'Off',
+                                onPressed: widget.controller.cycleSleepTimerPreset,
                               ),
                             ],
                           );
@@ -434,10 +462,99 @@ class _MetaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
-      avatar: Icon(icon, size: 16),
-      label: Text(label, overflow: TextOverflow.ellipsis),
-      visualDensity: VisualDensity.compact,
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.54),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.18),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 15,
+            color: theme.colorScheme.primary.withValues(alpha: 0.92),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.92),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ControlSideButton extends StatelessWidget {
+  const _ControlSideButton({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = active
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurface.withValues(alpha: 0.72);
+    return SizedBox(
+      width: 56,
+      height: 72,
+      child: Stack(
+        children: [
+          Align(
+            alignment: Alignment.center,
+            child: IconButton(
+              onPressed: onPressed,
+              icon: Icon(icon, size: 22, color: color),
+              visualDensity: VisualDensity.compact,
+              style: IconButton.styleFrom(
+                backgroundColor: active
+                    ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                    : Colors.transparent,
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(color: color),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -608,7 +725,7 @@ class _LyricsPreviewCard extends StatelessWidget {
                         onPressed: onOpenDetail,
                         style: FilledButton.styleFrom(
                           backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF53273A),
+                          foregroundColor: theme.colorScheme.primary,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.symmetric(

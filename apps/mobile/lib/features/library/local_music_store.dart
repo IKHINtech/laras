@@ -455,6 +455,7 @@ class LocalMusicStore {
         GROUP BY song_id
       )
       SELECT
+        s.id AS id,
         h.song_id,
         h.last_position_ms,
         r.last_played_at_epoch_ms AS played_at_epoch_ms,
@@ -506,6 +507,7 @@ class LocalMusicStore {
         GROUP BY song_id
       )
       SELECT
+        s.id AS id,
         h.song_id,
         h.last_position_ms,
         p.last_played_at_epoch_ms AS played_at_epoch_ms,
