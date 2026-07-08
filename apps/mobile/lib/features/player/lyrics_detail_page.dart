@@ -263,18 +263,26 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
       builder: (_) => IgnorePointer(
         child: Transform.translate(
           offset: const Offset(-5000, 0),
-          child: Align(
+          child: OverflowBox(
             alignment: Alignment.topLeft,
-            child: Material(
-              type: MaterialType.transparency,
-              child: RepaintBoundary(
-                key: boundaryKey,
-                child: LyricsShareCard(
-                  song: widget.song,
-                  artworkUri: widget.artworkUri,
-                  lines: _selectedLyrics,
-                  theme: config.theme,
-                  format: config.format,
+            minWidth: 0,
+            minHeight: 0,
+            maxWidth: double.infinity,
+            maxHeight: double.infinity,
+            child: SizedBox(
+              width: config.format.width,
+              height: config.format.height,
+              child: Material(
+                type: MaterialType.transparency,
+                child: RepaintBoundary(
+                  key: boundaryKey,
+                  child: LyricsShareCard(
+                    song: widget.song,
+                    artworkUri: widget.artworkUri,
+                    lines: _selectedLyrics,
+                    theme: config.theme,
+                    format: config.format,
+                  ),
                 ),
               ),
             ),
@@ -290,7 +298,9 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
       if (boundary == null) {
         throw StateError('Share boundary not ready');
       }
-      final image = await boundary.toImage(pixelRatio: 3);
+      // The export widget is already laid out at 1080px wide, so using a
+      // large pixelRatio here multiplies memory usage and can crash devices.
+      final image = await boundary.toImage(pixelRatio: 1);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final bytes = byteData?.buffer.asUint8List();
       if (bytes == null || bytes.isEmpty) {
@@ -581,6 +591,17 @@ enum LyricsShareTheme {
 
   final String label;
 
+  String get logoAsset {
+    switch (this) {
+      case LyricsShareTheme.laras:
+        return 'android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png';
+      case LyricsShareTheme.aurora:
+        return 'android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground_neon.png';
+      case LyricsShareTheme.daylight:
+        return 'android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground_dark.png';
+    }
+  }
+
   LyricsSharePalette get palette {
     switch (this) {
       case LyricsShareTheme.laras:
@@ -818,6 +839,17 @@ class LyricsShareCard extends StatelessWidget {
     final palette = theme.palette;
     final lineText = lines.map((line) => line.text).join('\n');
     final story = format == LyricsShareFormat.story;
+    final longestLineLength = lines.fold<int>(
+      0,
+      (max, line) => line.text.length > max ? line.text.length : max,
+    );
+    final lyricStyle = _resolveShareLyricsStyle(
+      story: story,
+      lineCount: lines.length,
+      totalChars: lineText.length,
+      longestLineLength: longestLineLength,
+      color: palette.foreground,
+    );
     return SizedBox(
       width: format.width,
       height: format.height,
@@ -849,30 +881,6 @@ class LyricsShareCard extends StatelessWidget {
                 ),
               ),
             ),
-            Positioned(
-              top: story ? 120 : 88,
-              right: story ? 72 : 64,
-              child: Container(
-                width: story ? 240 : 180,
-                height: story ? 240 : 180,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: palette.glow,
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: story ? 220 : 120,
-              left: story ? -32 : -12,
-              child: Container(
-                width: story ? 280 : 220,
-                height: story ? 280 : 220,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: palette.glow.withValues(alpha: 0.55),
-                ),
-              ),
-            ),
             Padding(
               padding: EdgeInsets.fromLTRB(
                 story ? 88 : 84,
@@ -885,40 +893,45 @@ class LyricsShareCard extends StatelessWidget {
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
+                      horizontal: 16,
+                      vertical: 10,
                     ),
                     decoration: BoxDecoration(
                       color: palette.badgeBackground,
                       borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: palette.outline),
                     ),
-                    child: Text(
-                      'Laras',
-                      style: TextStyle(
-                        color: palette.badgeForeground,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 28,
-                        letterSpacing: 0.4,
+                    child: Image.asset(
+                      theme.logoAsset,
+                      width: story ? 34 : 36,
+                      height: story ? 34 : 36,
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.high,
+                      errorBuilder: (_, __, ___) => Text(
+                        'L',
+                        style: TextStyle(
+                          color: palette.badgeForeground,
+                          fontWeight: FontWeight.w700,
+                          fontSize: story ? 26 : 28,
+                          letterSpacing: 0.4,
+                        ),
                       ),
                     ),
                   ),
-                  SizedBox(height: story ? 84 : 56),
-                  Text(
-                    lineText,
-                    maxLines: story ? 14 : 9,
-                    overflow: TextOverflow.fade,
-                    style: TextStyle(
-                      color: palette.foreground,
-                      fontSize: story ? 58 : 54,
-                      height: 1.28,
-                      fontWeight: FontWeight.w700,
+                  SizedBox(height: story ? 68 : 48),
+                  Expanded(
+                    child: _ShareLyricsBlock(
+                      text: lineText,
+                      style: lyricStyle,
+                      maxLines: story ? 14 : 10,
+                      fadeColor: palette.gradient.last,
                     ),
                   ),
-                  const Spacer(),
+                  SizedBox(height: story ? 28 : 22),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 18,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: story ? 22 : 24,
+                      vertical: story ? 16 : 18,
                     ),
                     decoration: BoxDecoration(
                       color: palette.badgeBackground,
@@ -932,18 +945,22 @@ class LyricsShareCard extends StatelessWidget {
                           song.title,
                           style: TextStyle(
                             color: palette.foreground,
-                            fontSize: 34,
+                            fontSize: story ? 32 : 34,
                             fontWeight: FontWeight.w700,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           song.artistLabel,
                           style: TextStyle(
                             color: palette.accent,
-                            fontSize: 28,
+                            fontSize: story ? 26 : 28,
                             fontWeight: FontWeight.w500,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -963,6 +980,83 @@ class LyricsShareCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+TextStyle _resolveShareLyricsStyle({
+  required bool story,
+  required int lineCount,
+  required int totalChars,
+  required int longestLineLength,
+  required Color color,
+}) {
+  var fontSize = story ? 58.0 : 54.0;
+  var height = 1.22;
+
+  if (lineCount >= 4) fontSize -= 4;
+  if (lineCount >= 6) fontSize -= 5;
+  if (lineCount >= 8) fontSize -= 5;
+  if (totalChars > 80) fontSize -= 4;
+  if (totalChars > 120) fontSize -= 5;
+  if (totalChars > 160) fontSize -= 5;
+  if (longestLineLength > 16) fontSize -= 4;
+  if (longestLineLength > 24) fontSize -= 4;
+  if (longestLineLength > 32) fontSize -= 4;
+  if (totalChars > 140 || longestLineLength > 24) {
+    height = 1.16;
+  }
+
+  fontSize = fontSize.clamp(story ? 30.0 : 28.0, story ? 58.0 : 54.0);
+  return TextStyle(
+    color: color,
+    fontSize: fontSize,
+    height: height,
+    fontWeight: FontWeight.w700,
+  );
+}
+
+class _ShareLyricsBlock extends StatelessWidget {
+  const _ShareLyricsBlock({
+    required this.text,
+    required this.style,
+    required this.maxLines,
+    required this.fadeColor,
+  });
+
+  final String text;
+  final TextStyle style;
+  final int maxLines;
+  final Color fadeColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return ShaderMask(
+          shaderCallback: (rect) => LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white,
+              Colors.white,
+              Colors.white.withValues(alpha: 0.92),
+              Colors.white.withValues(alpha: 0.0),
+            ],
+            stops: const [0.0, 0.72, 0.88, 1.0],
+          ).createShader(rect),
+          blendMode: BlendMode.dstIn,
+          child: SizedBox(
+            width: constraints.maxWidth,
+            child: Text(
+              text,
+              maxLines: maxLines,
+              overflow: TextOverflow.clip,
+              style: style,
+            ),
+          ),
+        );
+      },
     );
   }
 }
