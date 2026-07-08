@@ -592,22 +592,12 @@ class _GradientPlayPauseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      shape: const CircleBorder(),
-      child: Ink(
-        width: 70,
-        height: 70,
+    return GestureDetector(
+      onTap: onPressed,
+      behavior: HitTestBehavior.opaque,
+      child: DecoratedBox(
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF8B5CF6),
-              Color(0xFFF59E0B),
-            ],
-          ),
           boxShadow: [
             BoxShadow(
               color: Color(0x408B5CF6),
@@ -616,15 +606,24 @@ class _GradientPlayPauseButton extends StatelessWidget {
             ),
           ],
         ),
-        child: InkWell(
-          onTap: onPressed,
-          customBorder: const CircleBorder(),
-          child: Center(
-            child: Icon(
-              playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              size: 42,
-              color: Colors.white,
+        child: Container(
+          width: 70,
+          height: 70,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF8B5CF6),
+                Color(0xFFF59E0B),
+              ],
             ),
+          ),
+          child: Icon(
+            playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            size: 42,
+            color: Colors.white,
           ),
         ),
       ),
