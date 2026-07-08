@@ -384,9 +384,11 @@ Lalu buat Pull Request.
 > Simpan screenshot aplikasi di `docs/assets/` lalu update bagian ini.
 
 ```md
-![Laras Home](docs/assets/screenshot-home.png)
-![Laras Playlist](docs/assets/screenshot-playlist.png)
-![Laras Settings](docs/assets/screenshot-settings.png)
+![Laras Home](docs/assets/screenshoot-home.png)
+![Laras Playlist](docs/assets/screenshoot-playlist.png)
+![Laras Settings](docs/assets/screenshoot-settings.png)
+![Laras Settings](docs/assets/screenshoot-now-playing.png)
+![Laras Settings](docs/assets/screenshoot-lirik.png)
 ```
 
 ---
