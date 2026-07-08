@@ -36,3 +36,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/
+    - android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+    - android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_dark.png
+    - android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_neon.png
