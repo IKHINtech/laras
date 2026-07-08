@@ -15,6 +15,11 @@ class MainActivity : AudioServiceActivity() {
     private val appIconChannelName = "laras/app_icon"
     private val shareChannelName = "laras/share"
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, equalizerChannelName)

@@ -7,10 +7,10 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Build
 import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
-import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
 import java.io.File
 
@@ -91,10 +91,23 @@ class LarasHomeWidgetProvider : HomeWidgetProvider() {
     }
 
     private fun launchIntent(context: Context, uri: String): PendingIntent {
-        return HomeWidgetLaunchIntent.getActivity(
+        val intent =
+            Intent(context, MainActivity::class.java).apply {
+                action = HOME_WIDGET_LAUNCH_ACTION
+                data = Uri.parse(uri)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+
+        var flags = PendingIntent.FLAG_UPDATE_CURRENT
+        if (Build.VERSION.SDK_INT >= 23) {
+            flags = flags or PendingIntent.FLAG_IMMUTABLE
+        }
+
+        return PendingIntent.getActivity(
             context,
-            MainActivity::class.java,
-            Uri.parse(uri),
+            uri.hashCode() and 0x7fffffff.toInt(),
+            intent,
+            flags,
         )
     }
 
@@ -142,5 +155,6 @@ class LarasHomeWidgetProvider : HomeWidgetProvider() {
         private const val KEY_ALBUM = "laras_widget_album"
         private const val KEY_IS_PLAYING = "laras_widget_is_playing"
         private const val KEY_ARTWORK_PATH = "laras_widget_artwork_path"
+        private const val HOME_WIDGET_LAUNCH_ACTION = "es.antonborri.home_widget.action.LAUNCH"
     }
 }
