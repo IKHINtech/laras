@@ -1,7 +1,7 @@
 name: laras_mobile
 description: Laras self-hosted and local music player.
 publish_to: "none"
-version: 0.7.0+2
+version: 0.8.0+3
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
