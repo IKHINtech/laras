@@ -209,16 +209,9 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                                 icon: const Icon(Icons.skip_previous),
                               ),
                               const SizedBox(width: 12),
-                              FilledButton.tonal(
+                              _GradientPlayPauseButton(
+                                playing: playing,
                                 onPressed: widget.controller.playOrPause,
-                                style: FilledButton.styleFrom(
-                                  shape: const CircleBorder(),
-                                  padding: const EdgeInsets.all(18),
-                                ),
-                                child: Icon(
-                                  playing ? Icons.pause : Icons.play_arrow,
-                                  size: 40,
-                                ),
                               ),
                               const SizedBox(width: 12),
                               IconButton(
@@ -554,6 +547,57 @@ class _ControlSideButton extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _GradientPlayPauseButton extends StatelessWidget {
+  const _GradientPlayPauseButton({
+    required this.playing,
+    required this.onPressed,
+  });
+
+  final bool playing;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      shape: const CircleBorder(),
+      child: Ink(
+        width: 70,
+        height: 70,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF8B5CF6),
+              Color(0xFFF59E0B),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x408B5CF6),
+              blurRadius: 18,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: InkWell(
+          onTap: onPressed,
+          customBorder: const CircleBorder(),
+          child: Center(
+            child: Icon(
+              playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              size: 42,
+              color: Colors.white,
+            ),
+          ),
+        ),
       ),
     );
   }

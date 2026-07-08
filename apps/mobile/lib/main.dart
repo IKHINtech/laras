@@ -64,6 +64,28 @@ class LarasApp extends StatefulWidget {
   State<LarasApp> createState() => _LarasAppState();
 }
 
+class _WidgetRouteSink extends StatefulWidget {
+  const _WidgetRouteSink();
+
+  @override
+  State<_WidgetRouteSink> createState() => _WidgetRouteSinkState();
+}
+
+class _WidgetRouteSinkState extends State<_WidgetRouteSink> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Navigator.of(context).maybePop();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
+}
+
 class _LarasAppState extends State<LarasApp> {
   static const _larasAmber = Color(0xFFF59E0B);
   static const _larasBackground = Color(0xFF08060D);
@@ -102,6 +124,7 @@ class _LarasAppState extends State<LarasApp> {
       themeMode: widget.themeController.themeMode,
       theme: _buildTheme(seed: seed, brightness: Brightness.light),
       darkTheme: _buildTheme(seed: seed, brightness: Brightness.dark),
+      onGenerateRoute: _onGenerateRoute,
       home:
           widget.authStore.token == null && !widget.authStore.hasSeenOfflineHome
               ? WelcomePage(
@@ -118,6 +141,48 @@ class _LarasAppState extends State<LarasApp> {
                   initialIndex: 0,
                 ),
     );
+  }
+
+  Route<dynamic> _onGenerateRoute(RouteSettings settings) {
+    final uri = _decodeWidgetRoute(settings.name);
+    if (uri != null) {
+      HomeWidgetCommandBus.emit(uri);
+      return PageRouteBuilder<void>(
+        settings: settings,
+        opaque: false,
+        barrierColor: Colors.transparent,
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder: (_, __, ___) => const _WidgetRouteSink(),
+      );
+    }
+
+    return PageRouteBuilder<void>(
+      settings: settings,
+      opaque: false,
+      barrierColor: Colors.transparent,
+      transitionDuration: Duration.zero,
+      reverseTransitionDuration: Duration.zero,
+      pageBuilder: (_, __, ___) => const _WidgetRouteSink(),
+    );
+  }
+
+  Uri? _decodeWidgetRoute(String? raw) {
+    if (raw == null || raw.isEmpty || raw == '/') return null;
+    final uri = Uri.tryParse(raw);
+    if (uri == null) return null;
+    final action = uri.queryParameters['action'];
+    if (action != null && action.isNotEmpty) {
+      return Uri(
+        scheme: 'laras',
+        host: 'player',
+        queryParameters: {'action': action},
+      );
+    }
+    if (uri.path.contains('now-playing')) {
+      return Uri(scheme: 'laras', host: 'now-playing');
+    }
+    return null;
   }
 
   ThemeData _buildTheme({
