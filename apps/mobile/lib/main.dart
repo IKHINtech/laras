@@ -65,6 +65,13 @@ class LarasApp extends StatefulWidget {
 }
 
 class _LarasAppState extends State<LarasApp> {
+  static const _larasAmber = Color(0xFFF59E0B);
+  static const _larasBackground = Color(0xFF08060D);
+  static const _larasSurface = Color(0xFF15101D);
+  static const _larasSurfaceHigh = Color(0xFF20172D);
+  static const _larasText = Color(0xFFF8FAFC);
+  static const _larasTextSecondary = Color(0xFFA7A3B8);
+
   late final ApiClient api;
 
   @override
@@ -93,17 +100,8 @@ class _LarasAppState extends State<LarasApp> {
       title: 'Laras',
       debugShowCheckedModeBanner: false,
       themeMode: widget.themeController.themeMode,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: seed),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: seed,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
+      theme: _buildTheme(seed: seed, brightness: Brightness.light),
+      darkTheme: _buildTheme(seed: seed, brightness: Brightness.dark),
       home:
           widget.authStore.token == null && !widget.authStore.hasSeenOfflineHome
               ? WelcomePage(
@@ -119,6 +117,126 @@ class _LarasAppState extends State<LarasApp> {
                   appIconController: widget.appIconController,
                   initialIndex: 0,
                 ),
+    );
+  }
+
+  ThemeData _buildTheme({
+    required Color seed,
+    required Brightness brightness,
+  }) {
+    final isDark = brightness == Brightness.dark;
+    final base = ColorScheme.fromSeed(
+      seedColor: seed,
+      brightness: brightness,
+    );
+    final scheme = isDark
+        ? base.copyWith(
+            primary: seed,
+            onPrimary: _larasText,
+            secondary: _larasAmber,
+            onSecondary: _larasBackground,
+            tertiary: _larasAmber,
+            surface: _larasSurface,
+            onSurface: _larasText,
+            surfaceContainerLowest: _larasBackground,
+            surfaceContainerLow: _larasSurface,
+            surfaceContainer: _larasSurface,
+            surfaceContainerHigh: _larasSurfaceHigh,
+            surfaceContainerHighest: _larasSurfaceHigh,
+            onSurfaceVariant: _larasTextSecondary,
+            outline: seed.withValues(alpha: 0.35),
+            outlineVariant: _larasTextSecondary.withValues(alpha: 0.20),
+            primaryContainer: seed.withValues(alpha: 0.22),
+            onPrimaryContainer: _larasText,
+            secondaryContainer: _larasAmber.withValues(alpha: 0.16),
+            onSecondaryContainer: _larasText,
+            scrim: Colors.black,
+            shadow: Colors.black,
+          )
+        : base.copyWith(
+            primary: seed,
+            secondary: _larasAmber,
+            tertiary: _larasAmber,
+          );
+
+    final theme = ThemeData(
+      colorScheme: scheme,
+      useMaterial3: true,
+      scaffoldBackgroundColor: isDark ? _larasBackground : null,
+      canvasColor: isDark ? _larasBackground : null,
+      dividerColor: isDark
+          ? _larasTextSecondary.withValues(alpha: 0.16)
+          : null,
+      textTheme: ThemeData(
+        brightness: brightness,
+        useMaterial3: true,
+      ).textTheme.apply(
+        bodyColor: isDark ? _larasText : null,
+        displayColor: isDark ? _larasText : null,
+      ),
+    );
+
+    return theme.copyWith(
+      appBarTheme: AppBarTheme(
+        backgroundColor: isDark ? _larasBackground : scheme.surface,
+        foregroundColor: isDark ? _larasText : scheme.onSurface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+      ),
+      cardTheme: CardThemeData(
+        color: isDark ? _larasSurface : scheme.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: isDark
+                ? _larasTextSecondary.withValues(alpha: 0.10)
+                : scheme.outlineVariant.withValues(alpha: 0.35),
+          ),
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: isDark ? _larasSurface : scheme.surface,
+        indicatorColor: isDark
+            ? _larasAmber.withValues(alpha: 0.22)
+            : scheme.secondaryContainer,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return TextStyle(
+            color: selected
+                ? (isDark ? _larasAmber : scheme.primary)
+                : (isDark ? _larasTextSecondary : scheme.onSurfaceVariant),
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            color: selected
+                ? (isDark ? _larasAmber : scheme.primary)
+                : (isDark ? _larasTextSecondary : scheme.onSurfaceVariant),
+          );
+        }),
+      ),
+      chipTheme: theme.chipTheme.copyWith(
+        backgroundColor: isDark ? _larasSurfaceHigh : scheme.surfaceContainer,
+        selectedColor: isDark
+            ? seed.withValues(alpha: 0.24)
+            : scheme.secondaryContainer,
+        side: BorderSide(
+          color: isDark
+              ? _larasTextSecondary.withValues(alpha: 0.14)
+              : scheme.outlineVariant.withValues(alpha: 0.30),
+        ),
+        labelStyle: TextStyle(
+          color: isDark ? _larasText : scheme.onSurface,
+        ),
+      ),
+      listTileTheme: ListTileThemeData(
+        iconColor: isDark ? _larasAmber : scheme.primary,
+        textColor: isDark ? _larasText : scheme.onSurface,
+      ),
     );
   }
 }

@@ -34,7 +34,7 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   static const _seedOptions = <Color>[
-    Color(0xFF0B6E4F),
+    ThemeController.defaultSeedColor,
     Color(0xFF1565C0),
     Color(0xFFB3541E),
     Color(0xFFAD1457),

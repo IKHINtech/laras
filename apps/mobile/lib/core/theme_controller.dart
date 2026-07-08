@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'app_settings_store.dart';
 
 class ThemeController extends ChangeNotifier {
+  static const defaultSeedColor = Color(0xFF8B5CF6);
+
   ThemeController(this._store);
 
   final AppSettingsStore _store;
 
   ThemeMode _themeMode = ThemeMode.system;
-  Color _seedColor = const Color(0xFF0B6E4F);
+  Color _seedColor = defaultSeedColor;
 
   ThemeMode get themeMode => _themeMode;
   Color get seedColor => _seedColor;
