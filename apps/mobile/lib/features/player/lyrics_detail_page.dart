@@ -92,6 +92,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
     var selectedFormat = LyricsShareFormat.square;
     var showArtworkBackground = true;
     var showFooter = true;
+    var textAlignment = LyricsShareTextAlignment.left;
+    var fontScale = 1.0;
     return showModalBottomSheet<_LyricsShareConfig>(
       context: context,
       isScrollControlled: true,
@@ -181,6 +183,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                                 format: selectedFormat,
                                 showArtworkBackground: showArtworkBackground,
                                 showFooter: showFooter,
+                                textAlignment: textAlignment,
+                                fontScale: fontScale,
                               ),
                             ),
                             const SizedBox(height: 20),
@@ -231,6 +235,63 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                             ),
                             const SizedBox(height: 18),
                             Text(
+                              'Tata teks',
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    color: palette.foreground,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: [
+                                for (final alignment
+                                    in LyricsShareTextAlignment.values)
+                                  _ShareTextAlignmentChip(
+                                    alignment: alignment,
+                                    selected: alignment == textAlignment,
+                                    onTap: () => setModalState(() {
+                                      textAlignment = alignment;
+                                    }),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 18),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Ukuran font',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleSmall
+                                        ?.copyWith(
+                                          color: palette.foreground,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
+                                ),
+                                Text(
+                                  '${(fontScale * 100).round()}%',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelLarge
+                                      ?.copyWith(color: palette.foregroundMuted),
+                                ),
+                              ],
+                            ),
+                            Slider(
+                              value: fontScale,
+                              min: 0.8,
+                              max: 1.3,
+                              divisions: 10,
+                              onChanged: (value) => setModalState(() {
+                                fontScale = value;
+                              }),
+                            ),
+                            const SizedBox(height: 18),
+                            Text(
                               'Opsi card',
                               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                                     color: palette.foreground,
@@ -268,6 +329,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                                     format: selectedFormat,
                                     showArtworkBackground: showArtworkBackground,
                                     showFooter: showFooter,
+                                    textAlignment: textAlignment,
+                                    fontScale: fontScale,
                                   ),
                                 ),
                                 icon: const Icon(Icons.ios_share_rounded),
@@ -319,6 +382,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                     format: config.format,
                     showArtworkBackground: config.showArtworkBackground,
                     showFooter: config.showFooter,
+                    textAlignment: config.textAlignment,
+                    fontScale: config.fontScale,
                   ),
                 ),
               ),
@@ -730,12 +795,39 @@ class _LyricsShareConfig {
     required this.format,
     required this.showArtworkBackground,
     required this.showFooter,
+    required this.textAlignment,
+    required this.fontScale,
   });
 
   final LyricsShareTheme theme;
   final LyricsShareFormat format;
   final bool showArtworkBackground;
   final bool showFooter;
+  final LyricsShareTextAlignment textAlignment;
+  final double fontScale;
+}
+
+enum LyricsShareTextAlignment {
+  left('Rata kiri', TextAlign.left, Alignment.centerLeft, CrossAxisAlignment.start),
+  center(
+    'Rata tengah',
+    TextAlign.center,
+    Alignment.center,
+    CrossAxisAlignment.center,
+  ),
+  right('Rata kanan', TextAlign.right, Alignment.centerRight, CrossAxisAlignment.end);
+
+  const LyricsShareTextAlignment(
+    this.label,
+    this.textAlign,
+    this.contentAlignment,
+    this.crossAxisAlignment,
+  );
+
+  final String label;
+  final TextAlign textAlign;
+  final Alignment contentAlignment;
+  final CrossAxisAlignment crossAxisAlignment;
 }
 
 class ArtworkFileImage extends StatelessWidget {
@@ -869,6 +961,8 @@ class LyricsShareCard extends StatelessWidget {
     required this.format,
     required this.showArtworkBackground,
     required this.showFooter,
+    required this.textAlignment,
+    required this.fontScale,
   });
 
   final Song song;
@@ -878,12 +972,15 @@ class LyricsShareCard extends StatelessWidget {
   final LyricsShareFormat format;
   final bool showArtworkBackground;
   final bool showFooter;
+  final LyricsShareTextAlignment textAlignment;
+  final double fontScale;
 
   @override
   Widget build(BuildContext context) {
     final palette = theme.palette;
     final lineText = lines.map((line) => line.text).join('\n');
     final story = format == LyricsShareFormat.story;
+    final minimal = !showFooter;
     final longestLineLength = lines.fold<int>(
       0,
       (max, line) => line.text.length > max ? line.text.length : max,
@@ -894,6 +991,7 @@ class LyricsShareCard extends StatelessWidget {
       totalChars: lineText.length,
       longestLineLength: longestLineLength,
       color: palette.foreground,
+      fontScale: fontScale,
     );
     return SizedBox(
       width: format.width,
@@ -933,123 +1031,247 @@ class LyricsShareCard extends StatelessWidget {
                 story ? 88 : 84,
                 story ? 112 : 88,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: story ? 18 : 20,
-                      vertical: story ? 9 : 10,
+              child: minimal
+                  ? _buildMinimalLayout(
+                      palette: palette,
+                      story: story,
+                      lineText: lineText,
+                      lyricStyle: lyricStyle,
+                    )
+                  : _buildStandardLayout(
+                      palette: palette,
+                      story: story,
+                      lineText: lineText,
+                      lyricStyle: lyricStyle,
                     ),
-                    decoration: BoxDecoration(
-                      color: palette.badgeBackground,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: palette.outline),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Image.asset(
-                          theme.logoAsset,
-                          width: story ? 34 : 38,
-                          height: story ? 34 : 38,
-                          fit: BoxFit.contain,
-                          filterQuality: FilterQuality.high,
-                          errorBuilder: (_, __, ___) => Text(
-                            'L',
-                            style: TextStyle(
-                              color: palette.badgeForeground,
-                              fontWeight: FontWeight.w700,
-                              fontSize: story ? 26 : 28,
-                              letterSpacing: 0.4,
-                            ),
-                          ),
-                        ),
-                        Transform.translate(
-                          offset: Offset(story ? -10 : -12, 0),
-                          child: Text(
-                            'aras',
-                            style: TextStyle(
-                              color: palette.badgeForeground,
-                              fontWeight: FontWeight.w600,
-                              fontSize: story ? 24 : 26,
-                              letterSpacing: 0.0,
-                              height: 1,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: story ? 68 : 48),
-                  Expanded(
-                    child: _ShareLyricsBlock(
-                      text: lineText,
-                      style: lyricStyle,
-                      maxLines: showFooter ? (story ? 14 : 10) : (story ? 17 : 13),
-                      fadeColor: palette.gradient.last,
-                    ),
-                  ),
-                  if (showFooter) ...[
-                    SizedBox(height: story ? 28 : 22),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: story ? 22 : 24,
-                        vertical: story ? 16 : 18,
-                      ),
-                      decoration: BoxDecoration(
-                        color: palette.badgeBackground,
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(color: palette.outline),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            song.title,
-                            style: TextStyle(
-                              color: palette.foreground,
-                              fontSize: story ? 32 : 34,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            song.artistLabel,
-                            style: TextStyle(
-                              color: palette.accent,
-                              fontSize: story ? 26 : 28,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: story ? 18 : 14),
-                  ] else
-                    SizedBox(height: story ? 18 : 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      story
-                          ? 'Instagram Story • ${format.description}'
-                          : 'Shared from Laras',
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        color: palette.foregroundMuted,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStandardLayout({
+    required LyricsSharePalette palette,
+    required bool story,
+    required String lineText,
+    required TextStyle lyricStyle,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildBrandBadge(palette: palette, story: story),
+        SizedBox(height: story ? 68 : 48),
+        Expanded(
+          child: Align(
+            alignment: textAlignment.contentAlignment,
+            child: _ShareLyricsBlock(
+              text: lineText,
+              style: lyricStyle,
+              maxLines: story ? 14 : 10,
+              fadeColor: palette.gradient.last,
+              textAlign: textAlignment.textAlign,
+              alignment: textAlignment.contentAlignment,
+            ),
+          ),
+        ),
+        SizedBox(height: story ? 28 : 22),
+        _buildFooterCard(palette: palette, story: story),
+        SizedBox(height: story ? 18 : 14),
+        _buildMetaLabel(palette: palette, story: story),
+      ],
+    );
+  }
+
+  Widget _buildMinimalLayout({
+    required LyricsSharePalette palette,
+    required bool story,
+    required String lineText,
+    required TextStyle lyricStyle,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildBrandBadge(palette: palette, story: story),
+            const Spacer(),
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: story ? 14 : 16,
+                vertical: story ? 9 : 10,
+              ),
+              decoration: BoxDecoration(
+                color: palette.badgeBackground.withValues(alpha: 0.84),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: palette.outline),
+              ),
+              child: Text(
+                song.artistLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: palette.accent,
+                  fontSize: story ? 22 : 24,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
+        ),
+        SizedBox(height: story ? 56 : 38),
+        Expanded(
+          child: Align(
+            alignment: textAlignment.contentAlignment,
+            child: _ShareLyricsBlock(
+              text: lineText,
+              style: lyricStyle.copyWith(
+                fontSize: (lyricStyle.fontSize ?? 0) + (story ? 2 : 4),
+                height: 1.14,
+              ),
+              maxLines: story ? 15 : 11,
+              fadeColor: palette.gradient.last,
+              textAlign: textAlignment.textAlign,
+              alignment: textAlignment.contentAlignment,
+            ),
+          ),
+        ),
+        SizedBox(height: story ? 24 : 18),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: Text(
+                song.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.left,
+                style: TextStyle(
+                  color: palette.foreground.withValues(alpha: 0.82),
+                  fontSize: story ? 28 : 30,
+                  fontWeight: FontWeight.w600,
+                  height: 1.05,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            _buildMetaLabel(palette: palette, story: story),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBrandBadge({
+    required LyricsSharePalette palette,
+    required bool story,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: story ? 18 : 20,
+        vertical: story ? 9 : 10,
+      ),
+      decoration: BoxDecoration(
+        color: palette.badgeBackground,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: palette.outline),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(
+            theme.logoAsset,
+            width: story ? 34 : 38,
+            height: story ? 34 : 38,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+            errorBuilder: (_, __, ___) => Text(
+              'L',
+              style: TextStyle(
+                color: palette.badgeForeground,
+                fontWeight: FontWeight.w700,
+                fontSize: story ? 26 : 28,
+                letterSpacing: 0.4,
+              ),
+            ),
+          ),
+          Transform.translate(
+            offset: Offset(story ? -10 : -12, 0),
+            child: Text(
+              'aras',
+              style: TextStyle(
+                color: palette.badgeForeground,
+                fontWeight: FontWeight.w600,
+                fontSize: story ? 24 : 26,
+                letterSpacing: 0.0,
+                height: 1,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooterCard({
+    required LyricsSharePalette palette,
+    required bool story,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: story ? 22 : 24,
+        vertical: story ? 16 : 18,
+      ),
+      decoration: BoxDecoration(
+        color: palette.badgeBackground,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: palette.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            song.title,
+            textAlign: TextAlign.left,
+            style: TextStyle(
+              color: palette.foreground,
+              fontSize: story ? 32 : 34,
+              fontWeight: FontWeight.w700,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            song.artistLabel,
+            textAlign: TextAlign.left,
+            style: TextStyle(
+              color: palette.accent,
+              fontSize: story ? 26 : 28,
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetaLabel({
+    required LyricsSharePalette palette,
+    required bool story,
+  }) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Text(
+        story ? 'Instagram Story • ${format.description}' : 'Shared from Laras',
+        textAlign: TextAlign.right,
+        style: TextStyle(
+          color: palette.foregroundMuted,
+          fontSize: 24,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -1062,6 +1284,7 @@ TextStyle _resolveShareLyricsStyle({
   required int totalChars,
   required int longestLineLength,
   required Color color,
+  required double fontScale,
 }) {
   var fontSize = story ? 58.0 : 54.0;
   var height = 1.22;
@@ -1079,7 +1302,8 @@ TextStyle _resolveShareLyricsStyle({
     height = 1.16;
   }
 
-  fontSize = fontSize.clamp(story ? 30.0 : 28.0, story ? 58.0 : 54.0);
+  fontSize =
+      (fontSize * fontScale).clamp(story ? 24.0 : 22.0, story ? 74.0 : 68.0);
   return TextStyle(
     color: color,
     fontSize: fontSize,
@@ -1094,12 +1318,16 @@ class _ShareLyricsBlock extends StatelessWidget {
     required this.style,
     required this.maxLines,
     required this.fadeColor,
+    required this.textAlign,
+    required this.alignment,
   });
 
   final String text;
   final TextStyle style;
   final int maxLines;
   final Color fadeColor;
+  final TextAlign textAlign;
+  final Alignment alignment;
 
   @override
   Widget build(BuildContext context) {
@@ -1120,11 +1348,15 @@ class _ShareLyricsBlock extends StatelessWidget {
           blendMode: BlendMode.dstIn,
           child: SizedBox(
             width: constraints.maxWidth,
-            child: Text(
-              text,
-              maxLines: maxLines,
-              overflow: TextOverflow.clip,
-              style: style,
+            child: Align(
+              alignment: alignment,
+              child: Text(
+                text,
+                maxLines: maxLines,
+                overflow: TextOverflow.clip,
+                textAlign: textAlign,
+                style: style,
+              ),
             ),
           ),
         );
@@ -1174,6 +1406,8 @@ class _LyricsSharePreview extends StatelessWidget {
                   format: config.format,
                   showArtworkBackground: config.showArtworkBackground,
                   showFooter: config.showFooter,
+                  textAlignment: config.textAlignment,
+                  fontScale: config.fontScale,
                 ),
               ),
             ),
@@ -1336,6 +1570,65 @@ class _ShareToggleChip extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               label,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ShareTextAlignmentChip extends StatelessWidget {
+  const _ShareTextAlignmentChip({
+    required this.alignment,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final LyricsShareTextAlignment alignment;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final icon = switch (alignment) {
+      LyricsShareTextAlignment.left => Icons.format_align_left_rounded,
+      LyricsShareTextAlignment.center => Icons.format_align_center_rounded,
+      LyricsShareTextAlignment.right => Icons.format_align_right_rounded,
+    };
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected
+              ? scheme.primary.withValues(alpha: 0.16)
+              : scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selected
+                ? scheme.primary.withValues(alpha: 0.78)
+                : scheme.outlineVariant.withValues(alpha: 0.42),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: selected ? scheme.primary : scheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              alignment.label,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: scheme.onSurface,
                     fontWeight: FontWeight.w600,
