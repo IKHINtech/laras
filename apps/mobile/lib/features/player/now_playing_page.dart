@@ -100,10 +100,9 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
               Theme.of(context).brightness == Brightness.dark
                   ? Brightness.light
                   : Brightness.dark,
-          statusBarBrightness:
-              Theme.of(context).brightness == Brightness.dark
-                  ? Brightness.dark
-                  : Brightness.light,
+          statusBarBrightness: Theme.of(context).brightness == Brightness.dark
+              ? Brightness.dark
+              : Brightness.light,
         ),
         child: Container(
           decoration: BoxDecoration(
@@ -147,7 +146,8 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                         runSpacing: 8,
                         alignment: WrapAlignment.center,
                         children: [
-                          _MetaChip(icon: Icons.folder, label: song.folderLabel),
+                          _MetaChip(
+                              icon: Icons.folder, label: song.folderLabel),
                           _MetaChip(
                             icon: Icons.history,
                             label: history == null
@@ -238,7 +238,8 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                                     ? 'Off'
                                     : '${sleepLabel}m',
                                 active: sleepLabel != 'Off',
-                                onPressed: widget.controller.cycleSleepTimerPreset,
+                                onPressed:
+                                    widget.controller.cycleSleepTimerPreset,
                               ),
                             ],
                           );
@@ -685,7 +686,8 @@ class _LyricsPreviewCard extends StatelessWidget {
               SizedBox(height: dense ? 8 : (compact ? 12 : 16)),
               for (final line in visibleLines)
                 Padding(
-                  padding: EdgeInsets.only(bottom: dense ? 6 : (compact ? 8 : 10)),
+                  padding:
+                      EdgeInsets.only(bottom: dense ? 6 : (compact ? 8 : 10)),
                   child: Text(
                     line.text,
                     maxLines: dense ? 1 : (compact ? 2 : 1),
@@ -782,69 +784,74 @@ class _LyricsCardShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = _LyricsThemePalette.fromTheme(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: palette.cardGradient,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.16),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          top: -28,
+          right: -20,
+          child: Container(
+            width: 128,
+            height: 128,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: palette.glowStrong,
+            ),
           ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          if (artworkUri != null)
-            Positioned(
-              top: 18,
-              right: 22,
-              child: Opacity(
-                opacity: 0.16,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: SizedBox(
-                    width: 108,
-                    height: 108,
-                    child: _ArtworkFileImage(uri: artworkUri!),
+        ),
+        Positioned(
+          bottom: -42,
+          left: -24,
+          child: Container(
+            width: 156,
+            height: 156,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: palette.glowSoft,
+            ),
+          ),
+        ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(26),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: palette.cardGradient,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.16),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              if (artworkUri != null)
+                Positioned(
+                  top: 18,
+                  right: 22,
+                  child: Opacity(
+                    opacity: 0.16,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: SizedBox(
+                        width: 108,
+                        height: 108,
+                        child: _ArtworkFileImage(uri: artworkUri!),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          Positioned(
-            top: -28,
-            right: -20,
-            child: Container(
-              width: 128,
-              height: 128,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: palette.glowStrong,
-              ),
-            ),
+              SizedBox.expand(child: child),
+            ],
           ),
-          Positioned(
-            bottom: -42,
-            left: -24,
-            child: Container(
-              width: 156,
-              height: 156,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: palette.glowSoft,
-              ),
-            ),
-          ),
-          SizedBox.expand(child: child),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -914,7 +921,8 @@ class _LyricsDetailPage extends StatelessWidget {
                             height: 48,
                             child: IconButton(
                               onPressed: () => Navigator.of(context).maybePop(),
-                              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                              icon:
+                                  const Icon(Icons.keyboard_arrow_down_rounded),
                               color: Colors.white,
                               iconSize: 34,
                             ),
@@ -977,8 +985,8 @@ class _LyricsDetailPage extends StatelessWidget {
                               style: Theme.of(
                                 context,
                               ).textTheme.labelMedium?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.78),
-                              ),
+                                    color: Colors.white.withValues(alpha: 0.78),
+                                  ),
                             ),
                           ),
                         ),
