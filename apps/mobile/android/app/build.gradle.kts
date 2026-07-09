@@ -1,8 +1,29 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+val keystoreProperties =
+    Properties().apply {
+        val keystorePropertiesFile = rootProject.file("key.properties")
+        if (keystorePropertiesFile.exists()) {
+            keystorePropertiesFile.inputStream().use(::load)
+        }
+    }
+
+fun releaseSigningProperty(name: String): String? =
+    keystoreProperties.getProperty(name)?.takeIf { it.isNotBlank() }
+        ?: System.getenv(name)?.takeIf { it.isNotBlank() }
+
+val releaseStoreFile = releaseSigningProperty("storeFile")
+val releaseStorePassword = releaseSigningProperty("storePassword")
+val releaseKeyAlias = releaseSigningProperty("keyAlias")
+val releaseKeyPassword = releaseSigningProperty("keyPassword")
+val hasReleaseSigning =
+    listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { !it.isNullOrBlank() }
 
 android {
     namespace = "id.my.sarikhin.laras_mobile"
@@ -25,11 +46,26 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig =
+                if (hasReleaseSigning) {
+                    signingConfigs.getByName("release")
+                } else {
+                    logger.warn("Release signing config not found. Falling back to debug signing.")
+                    signingConfigs.getByName("debug")
+                }
         }
     }
 }
