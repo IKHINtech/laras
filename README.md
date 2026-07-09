@@ -382,11 +382,11 @@ Lalu buat Pull Request.
 ## Screenshot
 
 <p align="center">
-  <img src="docs/assets/screenshoot-home.png" width="200" />
-  <img src="docs/assets/screenshoot-playlist.png" width="200" />
-  <img src="docs/assets/screenshoot-settings.png" width="200" />
-  <img src="docs/assets/screenshoot-now-playing.png" width="200" />
-  <img src="docs/assets/screenshoot-lirik.png" width="200" />
+  <img src="docs/assets/screenshoot-home.jpeg" width="200" />
+  <img src="docs/assets/screenshoot-playlist.jpeg" width="200" />
+  <img src="docs/assets/screenshoot-settings.jpeg" width="200" />
+  <img src="docs/assets/screenshoot-now-playing.jpeg" width="200" />
+  <img src="docs/assets/screenshoot-lirik.jpeg" width="200" />
 </p>
 
 ---
