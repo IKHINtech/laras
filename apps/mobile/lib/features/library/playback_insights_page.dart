@@ -71,20 +71,6 @@ class _PlaybackInsightsPageState extends State<PlaybackInsightsPage> {
     setState(() => entries = []);
   }
 
-  String _formatPlayedAt(DateTime playedAt) {
-    final diff = DateTime.now().difference(playedAt);
-    if (diff.inMinutes < 1) return 'Baru saja';
-    if (diff.inHours < 1) return '${diff.inMinutes} menit lalu';
-    if (diff.inDays < 1) return '${diff.inHours} jam lalu';
-    if (diff.inDays < 7) return '${diff.inDays} hari lalu';
-    final weeks = diff.inDays ~/ 7;
-    if (weeks < 5) return '$weeks minggu lalu';
-    final months = diff.inDays ~/ 30;
-    if (months < 12) return '$months bulan lalu';
-    final years = diff.inDays ~/ 365;
-    return '$years tahun lalu';
-  }
-
   @override
   Widget build(BuildContext context) {
     final title = isRecent ? 'Recently Played' : 'Most Played';
@@ -127,8 +113,8 @@ class _PlaybackInsightsPageState extends State<PlaybackInsightsPage> {
                             widget.player.currentSong?.id == entry.song.id;
                         final activeColor = theme.colorScheme.primary;
                         final subtitle = isRecent
-                            ? '${entry.song.artistLabel} • ${_formatPlayedAt(entry.history.playedAt)} • ${entry.history.playCount}x diputar'
-                            : '${entry.song.artistLabel} • ${entry.history.playCount}x diputar • terakhir ${_formatPlayedAt(entry.history.playedAt)}';
+                            ? '${entry.song.artistLabel} • ${formatPlayedAt(entry.history.playedAt)} • ${entry.history.playCount}x diputar'
+                            : '${entry.song.artistLabel} • ${entry.history.playCount}x diputar • terakhir ${formatPlayedAt(entry.history.playedAt)}';
                         return ListTile(
                           tileColor: isCurrent
                               ? activeColor.withValues(alpha: 0.10)
@@ -178,6 +164,20 @@ class _PlaybackInsightsPageState extends State<PlaybackInsightsPage> {
                 ),
     );
   }
+}
+
+String formatPlayedAt(DateTime playedAt) {
+  final diff = DateTime.now().difference(playedAt);
+  if (diff.inMinutes < 1) return 'Baru saja';
+  if (diff.inHours < 1) return '${diff.inMinutes} menit lalu';
+  if (diff.inDays < 1) return '${diff.inHours} jam lalu';
+  if (diff.inDays < 7) return '${diff.inDays} hari lalu';
+  final weeks = diff.inDays ~/ 7;
+  if (weeks < 5) return '$weeks minggu lalu';
+  final months = diff.inDays ~/ 30;
+  if (months < 12) return '$months bulan lalu';
+  final years = diff.inDays ~/ 365;
+  return '$years tahun lalu';
 }
 
 class _RecentArtwork extends StatefulWidget {

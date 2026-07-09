@@ -18,6 +18,7 @@ func AutoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(
 		&models.User{},
 		&models.Song{},
+		&models.SongPlayEvent{},
 		&models.Favorite{},
 		&models.Playlist{},
 		&models.PlaylistItem{},

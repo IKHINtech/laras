@@ -6,7 +6,7 @@ import '../core/home_widget_command_bus.dart';
 import '../core/theme_controller.dart';
 import '../core/api_client.dart';
 import '../core/auth_store.dart';
-import 'library/server_library_page.dart';
+import 'library/server_home_page.dart';
 import 'library/local_library_page.dart';
 import 'library/local_music_store.dart';
 import 'library/local_playlists_page.dart';
@@ -94,7 +94,7 @@ class _HomeShellState extends State<HomeShell> {
     final showShellAppBar = index != 0;
     final pages = [
       LocalLibraryPage(player: widget.player, store: widget.localStore),
-      ServerLibraryPage(
+      ServerHomePage(
         api: widget.api,
         authStore: widget.authStore,
         themeController: widget.themeController,

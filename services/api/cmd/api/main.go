@@ -44,6 +44,8 @@ func main() {
 	private := api.Group("", middleware.Auth(cfg.JWTSecret))
 	private.Get("/me", authHandler.Me)
 	private.Get("/stats", songHandler.Stats)
+	private.Get("/songs/recent-played", songHandler.RecentPlayed)
+	private.Get("/songs/most-played", songHandler.MostPlayed)
 	private.Get("/songs", songHandler.List)
 	private.Post("/songs/upload", songHandler.Upload)
 	private.Get("/songs/:id", songHandler.Get)

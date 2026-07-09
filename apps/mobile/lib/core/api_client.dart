@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'auth_store.dart';
+import '../features/library/local_music_store.dart';
 import '../features/library/song.dart';
 
 class ApiClient {
@@ -47,6 +48,22 @@ class ApiClient {
         .toList();
   }
 
+  Future<List<RecentPlaybackEntry>> recentPlayedSongs({int limit = 20}) async {
+    final res = await dio.get(
+      '/songs/recent-played',
+      queryParameters: {'limit': limit},
+    );
+    return _playbackEntriesFromResponse(res.data as Map<String, dynamic>);
+  }
+
+  Future<List<RecentPlaybackEntry>> mostPlayedSongs({int limit = 20}) async {
+    final res = await dio.get(
+      '/songs/most-played',
+      queryParameters: {'limit': limit},
+    );
+    return _playbackEntriesFromResponse(res.data as Map<String, dynamic>);
+  }
+
   Future<Song> uploadSong(
     File file, {
     String? title,
@@ -70,4 +87,28 @@ class ApiClient {
       dio.post('/favorites/$songId/toggle');
   Future<Map<String, dynamic>> stats() async =>
       (await dio.get('/stats')).data as Map<String, dynamic>;
+
+  List<RecentPlaybackEntry> _playbackEntriesFromResponse(
+    Map<String, dynamic> data,
+  ) {
+    final rows = (data['data'] as List<dynamic>? ?? const []);
+    return rows.map((raw) {
+      final row = raw as Map<String, dynamic>;
+      final songJson = row['song'] as Map<String, dynamic>? ?? const {};
+      final song = Song.fromJson(songJson, baseUrl);
+      final playedAtRaw = row['played_at'] as String? ?? '';
+      final playedAt = DateTime.tryParse(playedAtRaw)?.toLocal() ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+      final playCount = (row['play_count'] as num?)?.toInt() ?? 0;
+      return RecentPlaybackEntry(
+        song: song,
+        history: PlaybackHistory(
+          songId: song.id,
+          lastPositionMs: 0,
+          playedAt: playedAt,
+          playCount: playCount,
+        ),
+      );
+    }).toList();
+  }
 }

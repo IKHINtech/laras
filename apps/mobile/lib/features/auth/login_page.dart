@@ -83,53 +83,62 @@ class _LoginPageState extends State<LoginPage> {
           registerMode ? 'Register Server Account' : 'Login Server Account',
         ),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Laras Server',
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Laras Server',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Login hanya diperlukan untuk upload, streaming, sync, dan offline download dari server.',
+                      ),
+                      const SizedBox(height: 24),
+                      if (registerMode)
+                        TextField(
+                          controller: name,
+                          decoration: const InputDecoration(labelText: 'Name'),
+                        ),
+                      TextField(
+                        controller: email,
+                        decoration: const InputDecoration(labelText: 'Email'),
+                      ),
+                      TextField(
+                        controller: password,
+                        decoration:
+                            const InputDecoration(labelText: 'Password'),
+                        obscureText: true,
+                      ),
+                      const SizedBox(height: 20),
+                      FilledButton(
+                        onPressed: loading ? null : submit,
+                        child: Text(registerMode ? 'Register' : 'Login'),
+                      ),
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => registerMode = !registerMode),
+                        child: Text(
+                          registerMode
+                              ? 'Sudah punya akun? Login'
+                              : 'Belum punya akun? Register',
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Login hanya diperlukan untuk upload, streaming, sync, dan offline download dari server.',
-                  ),
-                  const SizedBox(height: 24),
-                  if (registerMode)
-                    TextField(
-                      controller: name,
-                      decoration: const InputDecoration(labelText: 'Name'),
-                    ),
-                  TextField(
-                    controller: email,
-                    decoration: const InputDecoration(labelText: 'Email'),
-                  ),
-                  TextField(
-                    controller: password,
-                    decoration: const InputDecoration(labelText: 'Password'),
-                    obscureText: true,
-                  ),
-                  const SizedBox(height: 20),
-                  FilledButton(
-                    onPressed: loading ? null : submit,
-                    child: Text(registerMode ? 'Register' : 'Login'),
-                  ),
-                  TextButton(
-                    onPressed: () =>
-                        setState(() => registerMode = !registerMode),
-                    child: Text(
-                      registerMode
-                          ? 'Sudah punya akun? Login'
-                          : 'Belum punya akun? Register',
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),

@@ -42,6 +42,16 @@ type Song struct {
 	SizeBytes   int64     `json:"size_bytes"`
 }
 
+type SongPlayEvent struct {
+	Base
+	UserID     uuid.UUID `json:"user_id" gorm:"type:uuid;index;not null"`
+	SongID     uuid.UUID `json:"song_id" gorm:"type:uuid;index;not null"`
+	EventType  string    `json:"event_type" gorm:"not null;default:play_start"`
+	PositionMS int64     `json:"position_ms" gorm:"not null;default:0"`
+	PlayWeight int       `json:"play_weight" gorm:"not null;default:1"`
+	Song       Song      `json:"song,omitempty"`
+}
+
 type Favorite struct {
 	Base
 	UserID uuid.UUID `json:"user_id" gorm:"type:uuid;index;not null"`

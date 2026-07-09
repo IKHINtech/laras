@@ -1,13 +1,11 @@
 import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import '../../core/app_icon_controller.dart';
+
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
-import '../../core/theme_controller.dart';
-import '../auth/login_page.dart';
 import '../player/player_controller.dart';
-import 'local_music_store.dart';
 import 'song.dart';
 
 class ServerLibraryPage extends StatefulWidget {
@@ -15,16 +13,11 @@ class ServerLibraryPage extends StatefulWidget {
     super.key,
     required this.api,
     required this.authStore,
-    required this.themeController,
-    required this.appIconController,
-    required this.store,
     required this.player,
   });
+
   final ApiClient api;
   final AuthStore authStore;
-  final ThemeController themeController;
-  final AppIconController appIconController;
-  final LocalMusicStore store;
   final PlayerController player;
 
   @override
@@ -36,26 +29,22 @@ class _ServerLibraryPageState extends State<ServerLibraryPage> {
   bool loading = false;
   final search = TextEditingController();
 
-  bool get isLoggedIn => widget.authStore.token != null;
-
   @override
   void initState() {
     super.initState();
-    if (isLoggedIn) load();
+    load();
   }
 
   Future<void> load() async {
-    if (!isLoggedIn) return;
     setState(() => loading = true);
     try {
-      songs = await widget.api.songs(q: search.text);
+      songs = await widget.api.songs(q: search.text.trim());
     } finally {
       if (mounted) setState(() => loading = false);
     }
   }
 
   Future<void> upload() async {
-    if (!isLoggedIn) return;
     final result = await FilePicker.platform.pickFiles(type: FileType.audio);
     if (result == null || result.files.single.path == null) return;
     await widget.api.uploadSong(File(result.files.single.path!));
@@ -64,73 +53,6 @@ class _ServerLibraryPageState extends State<ServerLibraryPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (!isLoggedIn) {
-      return Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.cloud_off, size: 56),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Server Mode belum aktif',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Local Mode tetap bisa dipakai tanpa login. Login hanya untuk upload, streaming, sync playlist/favorite, dan offline download dari server.',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  FilledButton.icon(
-                    icon: const Icon(Icons.login),
-                    label: const Text('Login to Laras Server'),
-                    onPressed: () => Navigator.of(context)
-                        .push(
-                          MaterialPageRoute(
-                            builder: (_) => LoginPage(
-                              api: widget.api,
-                              authStore: widget.authStore,
-                              themeController: widget.themeController,
-                              appIconController: widget.appIconController,
-                              localStore: widget.store,
-                              player: widget.player,
-                            ),
-                          ),
-                        )
-                        .then((_) => setState(() {})),
-                  ),
-                  TextButton.icon(
-                    icon: const Icon(Icons.person_add),
-                    label: const Text('Register'),
-                    onPressed: () => Navigator.of(context)
-                        .push(
-                          MaterialPageRoute(
-                            builder: (_) => LoginPage(
-                              api: widget.api,
-                              authStore: widget.authStore,
-                              themeController: widget.themeController,
-                              appIconController: widget.appIconController,
-                              localStore: widget.store,
-                              player: widget.player,
-                              initialRegisterMode: true,
-                            ),
-                          ),
-                        )
-                        .then((_) => setState(() {})),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
     return Column(
       children: [
         Padding(
@@ -159,30 +81,41 @@ class _ServerLibraryPageState extends State<ServerLibraryPage> {
         Expanded(
           child: loading
               ? const Center(child: CircularProgressIndicator())
-              : ListView.builder(
-                  itemCount: songs.length,
-                  itemBuilder: (_, i) {
-                    final song = songs[i];
-                    return ListTile(
-                      leading: const CircleAvatar(
-                        child: Icon(Icons.music_note),
+              : songs.isEmpty
+                  ? Center(
+                      child: Text(
+                        search.text.trim().isEmpty
+                            ? 'Belum ada lagu di server.'
+                            : 'Tidak ada lagu yang cocok.',
                       ),
-                      title: Text(song.title),
-                      subtitle: Text(
-                        song.artist.isEmpty ? 'Unknown Artist' : song.artist,
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.favorite_border),
-                        onPressed: () => widget.api.toggleFavorite(song.id),
-                      ),
-                      onTap: () => widget.player.playQueue(
-                        songs,
-                        i,
-                        token: widget.authStore.token,
-                      ),
-                    );
-                  },
-                ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      itemCount: songs.length,
+                      itemBuilder: (_, index) {
+                        final song = songs[index];
+                        return ListTile(
+                          leading: const CircleAvatar(
+                            child: Icon(Icons.music_note),
+                          ),
+                          title: Text(song.title),
+                          subtitle: Text(
+                            song.artist.isEmpty
+                                ? 'Unknown Artist'
+                                : song.artist,
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.favorite_border),
+                            onPressed: () => widget.api.toggleFavorite(song.id),
+                          ),
+                          onTap: () => widget.player.playQueue(
+                            songs,
+                            index,
+                            token: widget.authStore.token,
+                          ),
+                        );
+                      },
+                    ),
         ),
       ],
     );
