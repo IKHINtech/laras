@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/app_icon_controller.dart';
 import '../../core/auth_store.dart';
+import '../../core/locale_controller.dart';
 import '../../core/theme_controller.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ext.dart';
 import '../player/player_controller.dart';
 import 'local_music_store.dart';
 import 'server_auth_required_view.dart';
@@ -16,6 +19,7 @@ class ServerHomePage extends StatefulWidget {
     required this.api,
     required this.authStore,
     required this.themeController,
+    required this.localeController,
     required this.appIconController,
     required this.store,
     required this.player,
@@ -24,6 +28,7 @@ class ServerHomePage extends StatefulWidget {
   final ApiClient api;
   final AuthStore authStore;
   final ThemeController themeController;
+  final LocaleController localeController;
   final AppIconController appIconController;
   final LocalMusicStore store;
   final PlayerController player;
@@ -37,11 +42,13 @@ class _ServerHomePageState extends State<ServerHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (!isLoggedIn) {
       return ServerAuthRequiredView(
         api: widget.api,
         authStore: widget.authStore,
         themeController: widget.themeController,
+        localeController: widget.localeController,
         appIconController: widget.appIconController,
         store: widget.store,
         player: widget.player,
@@ -60,11 +67,11 @@ class _ServerHomePageState extends State<ServerHomePage> {
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const TabBar(
+              child: TabBar(
                 dividerColor: Colors.transparent,
                 tabs: [
-                  Tab(text: 'Dashboard'),
-                  Tab(text: 'Songs'),
+                  Tab(text: l10n.serverDashboard),
+                  Tab(text: l10n.songsTab),
                 ],
               ),
             ),

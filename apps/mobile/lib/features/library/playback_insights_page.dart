@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ext.dart';
 import '../player/player_controller.dart';
 import 'local_music_store.dart';
 
@@ -46,21 +48,22 @@ class _PlaybackInsightsPageState extends State<PlaybackInsightsPage> {
   }
 
   Future<void> _clearHistory() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(isRecent ? 'Hapus Recently Played?' : 'Reset Most Played?'),
-        content: const Text(
-          'Riwayat pemutaran lokal akan dihapus dari device ini.',
+        title: Text(
+          isRecent ? l10n.clearRecentPlayedTitle : l10n.clearMostPlayedTitle,
         ),
+        content: Text(l10n.clearLocalPlaybackWarning),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Batal'),
+            child: Text(l10n.cancelText),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Hapus'),
+            child: Text(l10n.deleteText),
           ),
         ],
       ),
@@ -73,7 +76,8 @@ class _PlaybackInsightsPageState extends State<PlaybackInsightsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final title = isRecent ? 'Recently Played' : 'Most Played';
+    final l10n = AppLocalizations.of(context)!;
+    final title = isRecent ? l10n.recentlyPlayed : l10n.mostPlayedLabel;
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
@@ -93,8 +97,8 @@ class _PlaybackInsightsPageState extends State<PlaybackInsightsPage> {
                     padding: const EdgeInsets.all(24),
                     child: Text(
                       isRecent
-                          ? 'Belum ada riwayat putar. Mulai putar lagu lokal dulu.'
-                          : 'Belum ada data lagu yang paling sering diputar.',
+                          ? l10n.noRecentPlayedDetail
+                          : l10n.noMostPlayedDetail,
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -113,8 +117,16 @@ class _PlaybackInsightsPageState extends State<PlaybackInsightsPage> {
                             widget.player.currentSong?.id == entry.song.id;
                         final activeColor = theme.colorScheme.primary;
                         final subtitle = isRecent
-                            ? '${entry.song.artistLabel} • ${formatPlayedAt(entry.history.playedAt)} • ${entry.history.playCount}x diputar'
-                            : '${entry.song.artistLabel} • ${entry.history.playCount}x diputar • terakhir ${formatPlayedAt(entry.history.playedAt)}';
+                            ? l10n.recentPlaybackSubtitle(
+                                entry.song.artistLabel,
+                                formatPlayedAt(l10n, entry.history.playedAt),
+                                entry.history.playCount,
+                              )
+                            : l10n.mostPlayedSubtitle(
+                                entry.song.artistLabel,
+                                entry.history.playCount,
+                                formatPlayedAt(l10n, entry.history.playedAt),
+                              );
                         return ListTile(
                           tileColor: isCurrent
                               ? activeColor.withValues(alpha: 0.10)
@@ -146,7 +158,7 @@ class _PlaybackInsightsPageState extends State<PlaybackInsightsPage> {
                           ),
                           trailing: !isRecent
                               ? Text(
-                                  '#${index + 1}',
+                                  l10n.rankLabel(index + 1),
                                   style: theme.textTheme.titleMedium?.copyWith(
                                     color: activeColor.withValues(alpha: 0.85),
                                     fontWeight: FontWeight.w700,
@@ -166,18 +178,18 @@ class _PlaybackInsightsPageState extends State<PlaybackInsightsPage> {
   }
 }
 
-String formatPlayedAt(DateTime playedAt) {
+String formatPlayedAt(AppLocalizations l10n, DateTime playedAt) {
   final diff = DateTime.now().difference(playedAt);
-  if (diff.inMinutes < 1) return 'Baru saja';
-  if (diff.inHours < 1) return '${diff.inMinutes} menit lalu';
-  if (diff.inDays < 1) return '${diff.inHours} jam lalu';
-  if (diff.inDays < 7) return '${diff.inDays} hari lalu';
+  if (diff.inMinutes < 1) return l10n.justNow;
+  if (diff.inHours < 1) return l10n.minutesAgo(diff.inMinutes);
+  if (diff.inDays < 1) return l10n.hoursAgo(diff.inHours);
+  if (diff.inDays < 7) return l10n.daysAgo(diff.inDays);
   final weeks = diff.inDays ~/ 7;
-  if (weeks < 5) return '$weeks minggu lalu';
+  if (weeks < 5) return l10n.weeksAgo(weeks);
   final months = diff.inDays ~/ 30;
-  if (months < 12) return '$months bulan lalu';
+  if (months < 12) return l10n.monthsAgo(months);
   final years = diff.inDays ~/ 365;
-  return '$years tahun lalu';
+  return l10n.yearsAgo(years);
 }
 
 class _RecentArtwork extends StatefulWidget {

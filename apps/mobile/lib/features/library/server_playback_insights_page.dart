@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ext.dart';
 import '../player/player_controller.dart';
 import 'local_music_store.dart';
 import 'playback_insights_page.dart';
@@ -53,7 +55,8 @@ class _ServerPlaybackInsightsPageState
 
   @override
   Widget build(BuildContext context) {
-    final title = isRecent ? 'Recently Played' : 'Most Played';
+    final l10n = AppLocalizations.of(context)!;
+    final title = isRecent ? l10n.recentlyPlayed : l10n.mostPlayedLabel;
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
@@ -72,8 +75,8 @@ class _ServerPlaybackInsightsPageState
                     padding: const EdgeInsets.all(24),
                     child: Text(
                       isRecent
-                          ? 'Belum ada riwayat putar server. Mulai putar lagu server dulu.'
-                          : 'Belum ada data lagu server yang paling sering diputar.',
+                          ? l10n.noServerRecentDetail
+                          : l10n.noServerMostPlayedDetail,
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -93,8 +96,16 @@ class _ServerPlaybackInsightsPageState
                               widget.player.currentSong?.id == entry.song.id;
                           final activeColor = theme.colorScheme.primary;
                           final subtitle = isRecent
-                              ? '${entry.song.artistLabel} • ${formatPlayedAt(entry.history.playedAt)} • ${entry.history.playCount}x diputar'
-                              : '${entry.song.artistLabel} • ${entry.history.playCount}x diputar • terakhir ${formatPlayedAt(entry.history.playedAt)}';
+                              ? l10n.recentPlaybackSubtitle(
+                                  entry.song.artistLabel,
+                                  formatPlayedAt(l10n, entry.history.playedAt),
+                                  entry.history.playCount,
+                                )
+                              : l10n.mostPlayedSubtitle(
+                                  entry.song.artistLabel,
+                                  entry.history.playCount,
+                                  formatPlayedAt(l10n, entry.history.playedAt),
+                                );
                           return ListTile(
                             tileColor: isCurrent
                                 ? activeColor.withValues(alpha: 0.10)
@@ -137,7 +148,7 @@ class _ServerPlaybackInsightsPageState
                             ),
                             trailing: !isRecent
                                 ? Text(
-                                    '#${index + 1}',
+                                    l10n.rankLabel(index + 1),
                                     style:
                                         theme.textTheme.titleMedium?.copyWith(
                                       color:

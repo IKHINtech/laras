@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../core/app_icon_controller.dart';
 import '../core/home_widget_command_bus.dart';
+import '../core/locale_controller.dart';
 import '../core/theme_controller.dart';
 import '../core/api_client.dart';
 import '../core/auth_store.dart';
@@ -21,6 +23,7 @@ class HomeShell extends StatefulWidget {
     required this.api,
     required this.authStore,
     required this.themeController,
+    required this.localeController,
     required this.appIconController,
     required this.localStore,
     required this.player,
@@ -29,6 +32,7 @@ class HomeShell extends StatefulWidget {
   final ApiClient api;
   final AuthStore authStore;
   final ThemeController themeController;
+  final LocaleController localeController;
   final AppIconController appIconController;
   final LocalMusicStore localStore;
   final PlayerController player;
@@ -91,6 +95,7 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final showShellAppBar = index != 0;
     final pages = [
       LocalLibraryPage(player: widget.player, store: widget.localStore),
@@ -98,6 +103,7 @@ class _HomeShellState extends State<HomeShell> {
         api: widget.api,
         authStore: widget.authStore,
         themeController: widget.themeController,
+        localeController: widget.localeController,
         appIconController: widget.appIconController,
         store: widget.localStore,
         player: widget.player,
@@ -110,6 +116,7 @@ class _HomeShellState extends State<HomeShell> {
         store: widget.localStore,
         player: widget.player,
         themeController: widget.themeController,
+        localeController: widget.localeController,
         appIconController: widget.appIconController,
         onLogout: () async {
           await widget.authStore.clear();
@@ -121,7 +128,7 @@ class _HomeShellState extends State<HomeShell> {
     return Scaffold(
       appBar: showShellAppBar
           ? AppBar(
-              title: const Text('Laras'),
+              title: Text(l10n.appTitle),
               actions: [
                 Padding(
                   padding: const EdgeInsets.only(right: 12),
@@ -133,7 +140,9 @@ class _HomeShellState extends State<HomeShell> {
                       size: 18,
                     ),
                     label: Text(
-                      widget.authStore.token == null ? 'Offline' : 'Server',
+                      widget.authStore.token == null
+                          ? l10n.statusOffline
+                          : l10n.statusServer,
                     ),
                   ),
                 ),
@@ -189,17 +198,23 @@ class _HomeShellState extends State<HomeShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (value) => setState(() => index = value),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.library_music),
-            label: 'Local',
+            icon: const Icon(Icons.library_music),
+            label: l10n.navLocal,
           ),
-          NavigationDestination(icon: Icon(Icons.cloud), label: 'Server'),
           NavigationDestination(
-            icon: Icon(Icons.queue_music),
-            label: 'Playlists',
+            icon: const Icon(Icons.cloud),
+            label: l10n.navServer,
           ),
-          NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
+          NavigationDestination(
+            icon: const Icon(Icons.queue_music),
+            label: l10n.navPlaylists,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.settings),
+            label: l10n.navSettings,
+          ),
         ],
       ),
     );

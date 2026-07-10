@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:on_audio_query/on_audio_query.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ext.dart';
 import '../library/local_music_store.dart';
 import '../library/song.dart';
 import 'lyrics_detail_page.dart';
@@ -114,9 +116,10 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final song = widget.controller.currentSong;
     if (song == null) {
-      return const Scaffold(body: Center(child: Text('No song playing')));
+      return Scaffold(body: Center(child: Text(l10n.noSongPlaying)));
     }
 
     return Scaffold(
@@ -179,8 +182,8 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                           _MetaChip(
                             icon: Icons.history,
                             label: history == null
-                                ? 'First play'
-                                : '${history!.playCount} plays',
+                                ? l10n.firstPlay
+                                : l10n.playsCount(history!.playCount),
                           ),
                           StreamBuilder<Duration>(
                             stream: widget.controller.player.positionStream,
@@ -221,10 +224,10 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                                   TrackPlayMode.repeatOne => Icons.repeat_one,
                                 },
                                 label: switch (trackMode) {
-                                  TrackPlayMode.normal => 'Normal',
-                                  TrackPlayMode.shuffle => 'Shuffle',
-                                  TrackPlayMode.repeatAll => 'Loop',
-                                  TrackPlayMode.repeatOne => 'Loop 1',
+                                  TrackPlayMode.normal => l10n.normalMode,
+                                  TrackPlayMode.shuffle => l10n.shuffleMode,
+                                  TrackPlayMode.repeatAll => l10n.loopMode,
+                                  TrackPlayMode.repeatOne => l10n.loopOneMode,
                                 },
                                 active: trackMode != TrackPlayMode.normal,
                                 onPressed: widget.controller.cycleTrackPlayMode,
@@ -256,7 +259,7 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                                     ? Icons.timer_off_outlined
                                     : Icons.timer_outlined,
                                 label: sleepLabel == 'Off'
-                                    ? 'Off'
+                                    ? l10n.off
                                     : '${sleepLabel}m',
                                 active: sleepLabel != 'Off',
                                 onPressed:
@@ -268,7 +271,10 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        '${widget.controller.currentIndex + 1} / ${widget.controller.queue.length} in queue',
+                        l10n.queuePosition(
+                          widget.controller.currentIndex + 1,
+                          widget.controller.queue.length,
+                        ),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       const SizedBox(height: 16),
@@ -690,6 +696,7 @@ class _LyricsPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     if (lyrics.isEmpty) {
       return _LyricsCardShell(
@@ -699,7 +706,7 @@ class _LyricsPreviewCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Pratinjau lirik',
+              l10n.lyricsPreview,
               style: theme.textTheme.labelLarge?.copyWith(
                 color: Colors.white.withValues(alpha: 0.85),
                 fontWeight: FontWeight.w700,
@@ -707,7 +714,7 @@ class _LyricsPreviewCard extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Text(
-              'Belum ada lirik yang ditemukan dari .lrc atau metadata.',
+              l10n.noLyricsFound,
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: Colors.white.withValues(alpha: 0.86),
                 height: 1.45,
@@ -738,7 +745,7 @@ class _LyricsPreviewCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Pratinjau lirik',
+                      l10n.lyricsPreview,
                       style: theme.textTheme.labelLarge?.copyWith(
                         color: Colors.white.withValues(alpha: 0.9),
                         fontWeight: FontWeight.w700,
@@ -747,7 +754,7 @@ class _LyricsPreviewCard extends StatelessWidget {
                   ),
                   if (source != null)
                     Text(
-                      'Source: ${source!.label}',
+                      l10n.sourceText(source!.label),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: Colors.white.withValues(alpha: 0.72),
                       ),
@@ -792,7 +799,7 @@ class _LyricsPreviewCard extends StatelessWidget {
                           ),
                         ),
                         icon: const Icon(Icons.open_in_full_rounded, size: 16),
-                        label: const Text('Lihat lirik'),
+                        label: Text(l10n.viewLyrics),
                       )
                     : FilledButton.icon(
                         onPressed: onOpenDetail,
@@ -810,7 +817,8 @@ class _LyricsPreviewCard extends StatelessWidget {
                           Icons.open_in_full_rounded,
                           size: compact ? 16 : 18,
                         ),
-                        label: Text(compact ? 'Lihat lirik' : 'Detail lirik'),
+                        label:
+                            Text(compact ? l10n.viewLyrics : l10n.lyricsDetail),
                       ),
               ),
             ],

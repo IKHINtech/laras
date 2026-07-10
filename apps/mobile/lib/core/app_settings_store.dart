@@ -8,6 +8,7 @@ class AppSettingsStore {
   static const _themeModeKey = 'theme_mode';
   static const _themeSeedKey = 'theme_seed';
   static const _launcherIconKey = 'launcher_icon';
+  static const _localeCodeKey = 'locale_code';
 
   Future<Database> get _db => LocalDatabase.instance.database;
 
@@ -57,6 +58,27 @@ class AppSettingsStore {
     await db.insert(
       'local_app_settings',
       {'key': _launcherIconKey, 'value': variant},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<String?> loadLocaleCode() async {
+    final db = await _db;
+    final rows = await db.query(
+      'local_app_settings',
+      columns: ['value'],
+      where: 'key = ?',
+      whereArgs: [_localeCodeKey],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : rows.first['value'] as String?;
+  }
+
+  Future<void> saveLocaleCode(String code) async {
+    final db = await _db;
+    await db.insert(
+      'local_app_settings',
+      {'key': _localeCodeKey, 'value': code},
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }

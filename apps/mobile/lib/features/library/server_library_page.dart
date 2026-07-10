@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ext.dart';
 import '../player/player_controller.dart';
 import 'song.dart';
 
@@ -53,6 +55,7 @@ class _ServerLibraryPageState extends State<ServerLibraryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         Padding(
@@ -62,9 +65,9 @@ class _ServerLibraryPageState extends State<ServerLibraryPage> {
               Expanded(
                 child: TextField(
                   controller: search,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search),
-                    hintText: 'Search server songs',
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search),
+                    hintText: l10n.searchServerSongs,
                   ),
                   onSubmitted: (_) => load(),
                 ),
@@ -73,7 +76,7 @@ class _ServerLibraryPageState extends State<ServerLibraryPage> {
               FilledButton.icon(
                 onPressed: upload,
                 icon: const Icon(Icons.upload),
-                label: const Text('Upload'),
+                label: Text(l10n.upload),
               ),
             ],
           ),
@@ -85,8 +88,8 @@ class _ServerLibraryPageState extends State<ServerLibraryPage> {
                   ? Center(
                       child: Text(
                         search.text.trim().isEmpty
-                            ? 'Belum ada lagu di server.'
-                            : 'Tidak ada lagu yang cocok.',
+                            ? l10n.noSongsOnServer
+                            : l10n.noMatchingSongs,
                       ),
                     )
                   : ListView.builder(
@@ -101,7 +104,7 @@ class _ServerLibraryPageState extends State<ServerLibraryPage> {
                           title: Text(song.title),
                           subtitle: Text(
                             song.artist.isEmpty
-                                ? 'Unknown Artist'
+                                ? l10n.unknownArtist
                                 : song.artist,
                           ),
                           trailing: IconButton(

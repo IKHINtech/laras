@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ext.dart';
 import '../player/player_controller.dart';
 import 'local_music_store.dart';
 import 'local_playlist_detail_page.dart';
@@ -41,23 +43,24 @@ class _LocalPlaylistsPageState extends State<LocalPlaylistsPage> {
   }
 
   Future<void> createPlaylist() async {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController(text: 'My Playlist');
     final created = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Create local playlist'),
+        title: Text(l10n.createLocalPlaylist),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(labelText: 'Playlist name'),
+          decoration: InputDecoration(labelText: l10n.playlistName),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancelText),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Create'),
+            child: Text(l10n.createText),
           ),
         ],
       ),
@@ -69,21 +72,20 @@ class _LocalPlaylistsPageState extends State<LocalPlaylistsPage> {
   }
 
   Future<bool> _confirmDeletePlaylist(LocalPlaylist playlist) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Hapus playlist?'),
-        content: Text(
-          'Playlist "${playlist.name}" akan dihapus dari device ini.',
-        ),
+        title: Text(l10n.deletePlaylistTitle),
+        content: Text(l10n.deletePlaylistMessage(playlist.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Batal'),
+            child: Text(l10n.cancelText),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Hapus'),
+            child: Text(l10n.deleteText),
           ),
         ],
       ),
@@ -93,6 +95,7 @@ class _LocalPlaylistsPageState extends State<LocalPlaylistsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final favoriteSongs = songs
         .where((song) => favoriteIds.contains(song.id.toString()))
         .toList();
@@ -101,15 +104,13 @@ class _LocalPlaylistsPageState extends State<LocalPlaylistsPage> {
       children: [
         Row(
           children: [
-            const Expanded(
-              child: Text(
-                'Local favorite dan playlist tersimpan di device, tanpa login.',
-              ),
+            Expanded(
+              child: Text(l10n.localPlaylistsIntro),
             ),
             FilledButton.icon(
               onPressed: createPlaylist,
               icon: const Icon(Icons.add),
-              label: const Text('Playlist'),
+              label: Text(l10n.playlistButton),
             ),
           ],
         ),
@@ -117,11 +118,11 @@ class _LocalPlaylistsPageState extends State<LocalPlaylistsPage> {
         Card(
           child: ListTile(
             leading: const Icon(Icons.history),
-            title: const Text('Recently Played'),
+            title: Text(l10n.recentlyPlayed),
             subtitle: Text(
               recentEntries.isEmpty
-                  ? 'Belum ada riwayat putar'
-                  : '${recentEntries.length} lagu terakhir',
+                  ? l10n.noPlayHistory
+                  : l10n.recentSongsCount(recentEntries.length),
             ),
             onTap: () => Navigator.of(context)
                 .push(
@@ -139,11 +140,11 @@ class _LocalPlaylistsPageState extends State<LocalPlaylistsPage> {
         Card(
           child: ListTile(
             leading: const Icon(Icons.bar_chart_rounded),
-            title: const Text('Most Played'),
+            title: Text(l10n.mostPlayedLabel),
             subtitle: Text(
               mostPlayedEntries.isEmpty
-                  ? 'Belum ada statistik putar'
-                  : '${mostPlayedEntries.length} lagu teratas',
+                  ? l10n.noPlayStats
+                  : l10n.topSongsCount(mostPlayedEntries.length),
             ),
             onTap: () => Navigator.of(context)
                 .push(
@@ -161,14 +162,14 @@ class _LocalPlaylistsPageState extends State<LocalPlaylistsPage> {
         Card(
           child: ListTile(
             leading: const Icon(Icons.favorite),
-            title: const Text('Favorite Songs'),
-            subtitle: Text('${favoriteSongs.length} songs'),
+            title: Text(l10n.favoriteSongs),
+            subtitle: Text(l10n.songsCount(favoriteSongs.length)),
             onTap: favoriteSongs.isEmpty
                 ? null
                 : () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => LocalPlaylistDetailPage(
-                          title: 'Favorite Songs',
+                          title: l10n.favoriteSongs,
                           songs: favoriteSongs,
                           player: widget.player,
                         ),
@@ -178,12 +179,10 @@ class _LocalPlaylistsPageState extends State<LocalPlaylistsPage> {
         ),
         const Divider(),
         if (playlists.isEmpty)
-          const Padding(
+          Padding(
             padding: EdgeInsets.all(24),
             child: Center(
-              child: Text(
-                'Belum ada playlist lokal. Buat playlist atau tambahkan lagu dari tab Local.',
-              ),
+              child: Text(l10n.noLocalPlaylistYet),
             ),
           )
         else
@@ -197,7 +196,7 @@ class _LocalPlaylistsPageState extends State<LocalPlaylistsPage> {
               child: ListTile(
                 leading: const Icon(Icons.queue_music),
                 title: Text(playlist.name),
-                subtitle: Text('${playlistSongs.length} songs'),
+                subtitle: Text(l10n.songsCount(playlistSongs.length)),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete_outline),
                   onPressed: () async {

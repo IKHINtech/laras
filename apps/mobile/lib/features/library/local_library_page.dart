@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ext.dart';
 import '../player/player_controller.dart';
 import 'local_music_store.dart';
 import 'playback_insights_page.dart';
@@ -113,9 +115,10 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
     await _refreshCollageSongs();
 
     if (mounted) {
+      final l10n = AppLocalizations.of(context)!;
       setState(() => loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Scanned ${localSongs.length} local songs')),
+        SnackBar(content: Text(l10n.scannedLocalSongs(localSongs.length))),
       );
     }
   }
@@ -208,6 +211,7 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
   }
 
   Future<void> addToPlaylist(Song song) async {
+    final l10n = AppLocalizations.of(context)!;
     final playlists = await widget.store.loadPlaylists();
     if (!mounted) return;
     if (playlists.isEmpty) {
@@ -215,19 +219,19 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
       final created = await showDialog<bool>(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('Create local playlist'),
+          title: Text(l10n.createLocalPlaylist),
           content: TextField(
             controller: nameController,
-            decoration: const InputDecoration(labelText: 'Playlist name'),
+            decoration: InputDecoration(labelText: l10n.playlistName),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancelText),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Create'),
+              child: Text(l10n.createText),
             ),
           ],
         ),
@@ -250,7 +254,7 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
               (playlist) => ListTile(
                 leading: const Icon(Icons.queue_music),
                 title: Text(playlist.name),
-                subtitle: Text('${playlist.songIds.length} songs'),
+                subtitle: Text(l10n.songsCount(playlist.songIds.length)),
                 onTap: () => Navigator.pop(context, playlist),
               ),
             )
@@ -262,10 +266,12 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text('Added to ${selected.name}')));
+    ).showSnackBar(
+        SnackBar(content: Text(l10n.addedToPlaylist(selected.name))));
   }
 
   Widget _buildSongTile(Song song, List<Song> sourceSongs) {
+    final l10n = AppLocalizations.of(context)!;
     final isFavorite = favoriteIds.contains(song.id);
     final leadingArtwork = _LibraryArtworkAvatar(
       artworkId: song.artworkId,
@@ -317,12 +323,13 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
                 itemBuilder: (_) => [
                   PopupMenuItem(
                     value: 'favorite',
-                    child:
-                        Text(isFavorite ? 'Remove favorite' : 'Add favorite'),
+                    child: Text(
+                      isFavorite ? l10n.removeFavorite : l10n.addFavorite,
+                    ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'playlist',
-                    child: Text('Add to playlist'),
+                    child: Text(l10n.addToPlaylist),
                   ),
                 ],
               ),
@@ -336,13 +343,14 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
   }
 
   Widget _buildSongsTab(List<Song> songs) {
+    final l10n = AppLocalizations.of(context)!;
     if (loading) return const Center(child: CircularProgressIndicator());
     if (songs.isEmpty) {
       return Center(
         child: Text(
           localSongs.isEmpty
-              ? 'No local library cache yet. Tap Scan.'
-              : 'No songs match search.',
+              ? l10n.noLocalLibraryCache
+              : l10n.noSongsMatchSearch,
         ),
       );
     }
@@ -359,8 +367,8 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
               children: [
                 if (recentEntries.isNotEmpty)
                   _PlaybackPreviewSection(
-                    title: 'Recently Played',
-                    subtitle: 'Lagu yang baru kamu putar di device ini',
+                    title: l10n.recentlyPlayed,
+                    subtitle: l10n.localRecentlyPlayedSubtitle,
                     entries: recentEntries.take(8).toList(),
                     emptyIcon: Icons.history,
                     onViewAll: () => Navigator.of(context)
@@ -383,8 +391,8 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
                   const SizedBox(height: 14),
                 if (mostPlayedEntries.isNotEmpty)
                   _PlaybackPreviewSection(
-                    title: 'Most Played',
-                    subtitle: 'Lagu yang paling sering kamu putar',
+                    title: l10n.mostPlayedLabel,
+                    subtitle: l10n.localMostPlayedSubtitle,
                     entries: mostPlayedEntries.take(8).toList(),
                     emptyIcon: Icons.bar_chart_rounded,
                     showRank: true,
@@ -437,7 +445,8 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          subtitle: Text('${bucket.songs.length} songs'),
+          subtitle: Text(
+              AppLocalizations.of(context)!.songsCount(bucket.songs.length)),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => _BucketSongsPage(
@@ -471,7 +480,7 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
             pinned: true,
             floating: false,
             automaticallyImplyLeading: false,
-            title: const Text('Koleksi'),
+            title: Text(AppLocalizations.of(context)!.localCollection),
             backgroundColor: Theme.of(context).colorScheme.surface,
             surfaceTintColor: Colors.transparent,
             actions: showCollapsedActions
@@ -494,10 +503,11 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
                           scan();
                         }
                       },
-                      itemBuilder: (_) => const [
+                      itemBuilder: (_) => [
                         PopupMenuItem(
                           value: 'scan',
-                          child: Text('Scan ulang lagu'),
+                          child:
+                              Text(AppLocalizations.of(context)!.rescanSongs),
                         ),
                       ],
                     ),
@@ -546,8 +556,10 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
                             Expanded(
                               child: Text(
                                 localSongs.isEmpty
-                                    ? 'Offline library empty. Scan device music first.'
-                                    : '${localSongs.length} songs cached for offline browsing.',
+                                    ? AppLocalizations.of(context)!
+                                        .localLibraryEmptyHero
+                                    : AppLocalizations.of(context)!
+                                        .bucketSongsCached(localSongs.length),
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ),
@@ -555,13 +567,15 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
                               onPressed:
                                   filteredSongs.isEmpty ? null : _shuffleAll,
                               icon: const Icon(Icons.shuffle),
-                              label: const Text('Shuffle All'),
+                              label: Text(
+                                  AppLocalizations.of(context)!.shuffleAll),
                             ),
                             const SizedBox(width: 8),
                             OutlinedButton.icon(
                               onPressed: scan,
                               icon: const Icon(Icons.folder),
-                              label: const Text('Scan'),
+                              label:
+                                  Text(AppLocalizations.of(context)!.scanText),
                             ),
                           ],
                         ),
@@ -571,7 +585,8 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
                           focusNode: searchFocus,
                           decoration: InputDecoration(
                             prefixIcon: const Icon(Icons.search),
-                            hintText: 'Search songs, artist, album, folder',
+                            hintText:
+                                AppLocalizations.of(context)!.searchLibraryHint,
                             filled: true,
                             fillColor: Theme.of(context)
                                 .colorScheme
@@ -605,12 +620,12 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
             pinned: true,
             delegate: _StickyTabBarDelegate(
               color: Theme.of(context).colorScheme.surface,
-              tabBar: const TabBar(
+              tabBar: TabBar(
                 tabs: [
-                  Tab(text: 'Songs'),
-                  Tab(text: 'Artists'),
-                  Tab(text: 'Albums'),
-                  Tab(text: 'Folders'),
+                  Tab(text: AppLocalizations.of(context)!.songsTab),
+                  Tab(text: AppLocalizations.of(context)!.artistsTab),
+                  Tab(text: AppLocalizations.of(context)!.albumsTab),
+                  Tab(text: AppLocalizations.of(context)!.foldersTab),
                 ],
               ),
             ),
@@ -622,17 +637,17 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
             _buildBucketTab(
               buckets: artistBuckets,
               icon: Icons.person,
-              emptyLabel: 'No artists found.',
+              emptyLabel: AppLocalizations.of(context)!.noArtistsFound,
             ),
             _buildBucketTab(
               buckets: albumBuckets,
               icon: Icons.album,
-              emptyLabel: 'No albums found.',
+              emptyLabel: AppLocalizations.of(context)!.noAlbumsFound,
             ),
             _buildBucketTab(
               buckets: folderBuckets,
               icon: Icons.folder,
-              emptyLabel: 'No folders found.',
+              emptyLabel: AppLocalizations.of(context)!.noFoldersFound,
             ),
           ],
         ),
@@ -1059,6 +1074,7 @@ class _BucketSongsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(title: Text(title)),
       body: ListView.builder(
@@ -1119,12 +1135,12 @@ class _BucketSongsPage extends StatelessWidget {
                         PopupMenuItem(
                           value: 'favorite',
                           child: Text(
-                            isFavorite ? 'Remove favorite' : 'Add favorite',
+                            isFavorite ? l10n.removeFavorite : l10n.addFavorite,
                           ),
                         ),
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'playlist',
-                          child: Text('Add to playlist'),
+                          child: Text(l10n.addToPlaylist),
                         ),
                       ],
                     ),

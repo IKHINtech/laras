@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ext.dart';
 import 'local_music_store.dart';
 import 'playback_insights_page.dart';
 
@@ -25,6 +27,7 @@ class ServerPlaybackPreviewSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,7 +44,7 @@ class ServerPlaybackPreviewSection extends StatelessWidget {
             ),
             TextButton(
               onPressed: onViewAll,
-              child: const Text('View all'),
+              child: Text(l10n.viewAll),
             ),
           ],
         ),
@@ -61,7 +64,7 @@ class ServerPlaybackPreviewSection extends StatelessWidget {
                     children: [
                       Icon(emptyIcon, size: 24),
                       const SizedBox(height: 8),
-                      const Text('Belum ada data playback'),
+                      Text(l10n.noPlayHistory),
                     ],
                   ),
                 )
@@ -125,8 +128,11 @@ class ServerPlaybackPreviewSection extends StatelessWidget {
                                         ),
                                         child: Text(
                                           showRank
-                                              ? '${entry.history.playCount}x diputar'
+                                              ? l10n.playsCount(
+                                                  entry.history.playCount,
+                                                )
                                               : formatPlayedAt(
+                                                  l10n,
                                                   entry.history.playedAt,
                                                 ),
                                           maxLines: 1,
@@ -157,7 +163,7 @@ class ServerPlaybackPreviewSection extends StatelessWidget {
                                             ),
                                           ),
                                           child: Text(
-                                            '#${index + 1}',
+                                            l10n.rankLabel(index + 1),
                                             style: theme.textTheme.labelSmall
                                                 ?.copyWith(
                                               color: Colors.white,
@@ -182,7 +188,7 @@ class ServerPlaybackPreviewSection extends StatelessWidget {
                               Text(
                                 showRank
                                     ? entry.song.artistLabel
-                                    : '${entry.history.playCount}x diputar',
+                                    : l10n.playsCount(entry.history.playCount),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodySmall?.copyWith(

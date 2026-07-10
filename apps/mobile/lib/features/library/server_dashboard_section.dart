@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ext.dart';
 
 class ServerDashboardSection extends StatelessWidget {
   const ServerDashboardSection({
@@ -16,6 +18,7 @@ class ServerDashboardSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         Row(
@@ -23,7 +26,7 @@ class ServerDashboardSection extends StatelessWidget {
             Expanded(
               child: _DashboardCard(
                 icon: Icons.library_music_rounded,
-                label: 'Total Songs',
+                label: l10n.totalSongsLabel,
                 value: '$totalSongs',
               ),
             ),
@@ -31,7 +34,7 @@ class ServerDashboardSection extends StatelessWidget {
             Expanded(
               child: _DashboardCard(
                 icon: Icons.storage_rounded,
-                label: 'Storage',
+                label: l10n.storageLabel,
                 value: formatBytes(totalStorageBytes),
               ),
             ),
@@ -43,7 +46,7 @@ class ServerDashboardSection extends StatelessWidget {
             Expanded(
               child: _DashboardCard(
                 icon: Icons.history,
-                label: 'Recent',
+                label: l10n.recentLabel,
                 value: '$recentCount',
               ),
             ),
@@ -51,7 +54,7 @@ class ServerDashboardSection extends StatelessWidget {
             Expanded(
               child: _DashboardCard(
                 icon: Icons.bar_chart_rounded,
-                label: 'Most Played',
+                label: l10n.mostPlayedLabel,
                 value: '$mostPlayedCount',
               ),
             ),

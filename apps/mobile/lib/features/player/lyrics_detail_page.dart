@@ -6,6 +6,8 @@ import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/share_bridge.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ext.dart';
 import '../library/song.dart';
 import 'lyrics_service.dart';
 import 'player_controller.dart';
@@ -74,13 +76,15 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
       if (!mounted) return;
       if (!ok) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal membuka share sheet.')),
+          SnackBar(
+              content: Text(AppLocalizations.of(context)!.shareSheetFailed)),
         );
       }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal menyiapkan gambar lirik untuk dibagikan.')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)!.prepareShareFailed)),
       );
     } finally {
       if (mounted) setState(() => _sharing = false);
@@ -104,6 +108,7 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            final l10n = AppLocalizations.of(context)!;
             final palette = selectedTheme.palette;
             return SafeArea(
               top: false,
@@ -142,10 +147,11 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Preview share lirik',
+                                        l10n.lyricsSharePreviewTitle,
                                         style: Theme.of(context)
                                             .textTheme
                                             .titleLarge
@@ -156,7 +162,7 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'Pilih tema card dan format export sebelum dibagikan.',
+                                        l10n.lyricsSharePreviewSubtitle,
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodyMedium
@@ -168,7 +174,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                                   ),
                                 ),
                                 IconButton(
-                                  onPressed: () => Navigator.of(context).maybePop(),
+                                  onPressed: () =>
+                                      Navigator.of(context).maybePop(),
                                   icon: Icon(
                                     Icons.close_rounded,
                                     color: palette.foreground,
@@ -194,8 +201,11 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                             ),
                             const SizedBox(height: 20),
                             Text(
-                              'Preset cepat',
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              l10n.quickPreset,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(
                                     color: palette.foreground,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -205,7 +215,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                               spacing: 10,
                               runSpacing: 10,
                               children: [
-                                for (final preset in LyricsShareLayoutPreset.values)
+                                for (final preset
+                                    in LyricsShareLayoutPreset.values)
                                   _ShareLayoutPresetChip(
                                     preset: preset,
                                     selected: preset == selectedPreset,
@@ -225,8 +236,11 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                             ),
                             const SizedBox(height: 18),
                             Text(
-                              'Tema card',
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              l10n.cardTheme,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(
                                     color: palette.foreground,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -241,7 +255,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                                     theme: theme,
                                     selected: theme == selectedTheme,
                                     onTap: () => setModalState(() {
-                                      selectedPreset = LyricsShareLayoutPreset.custom;
+                                      selectedPreset =
+                                          LyricsShareLayoutPreset.custom;
                                       selectedTheme = theme;
                                     }),
                                   ),
@@ -249,8 +264,11 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                             ),
                             const SizedBox(height: 18),
                             Text(
-                              'Format export',
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              l10n.exportFormat,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(
                                     color: palette.foreground,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -265,7 +283,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                                     format: format,
                                     selected: format == selectedFormat,
                                     onTap: () => setModalState(() {
-                                      selectedPreset = LyricsShareLayoutPreset.custom;
+                                      selectedPreset =
+                                          LyricsShareLayoutPreset.custom;
                                       selectedFormat = format;
                                     }),
                                   ),
@@ -273,8 +292,11 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                             ),
                             const SizedBox(height: 18),
                             Text(
-                              'Tata teks',
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              l10n.textLayout,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(
                                     color: palette.foreground,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -290,7 +312,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                                     alignment: alignment,
                                     selected: alignment == textAlignment,
                                     onTap: () => setModalState(() {
-                                      selectedPreset = LyricsShareLayoutPreset.custom;
+                                      selectedPreset =
+                                          LyricsShareLayoutPreset.custom;
                                       textAlignment = alignment;
                                     }),
                                   ),
@@ -301,7 +324,7 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    'Ukuran font',
+                                    l10n.fontSizeText,
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleSmall
@@ -316,7 +339,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                                   style: Theme.of(context)
                                       .textTheme
                                       .labelLarge
-                                      ?.copyWith(color: palette.foregroundMuted),
+                                      ?.copyWith(
+                                          color: palette.foregroundMuted),
                                 ),
                               ],
                             ),
@@ -332,8 +356,11 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                             ),
                             const SizedBox(height: 18),
                             Text(
-                              'Ketebalan font',
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              l10n.fontWeightText,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(
                                     color: palette.foreground,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -343,12 +370,14 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                               spacing: 10,
                               runSpacing: 10,
                               children: [
-                                for (final weight in LyricsShareFontWeight.values)
+                                for (final weight
+                                    in LyricsShareFontWeight.values)
                                   _ShareFontWeightChip(
                                     weight: weight,
                                     selected: weight == fontWeight,
                                     onTap: () => setModalState(() {
-                                      selectedPreset = LyricsShareLayoutPreset.custom;
+                                      selectedPreset =
+                                          LyricsShareLayoutPreset.custom;
                                       fontWeight = weight;
                                     }),
                                   ),
@@ -359,7 +388,7 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    'Line spacing',
+                                    l10n.lineSpacingText,
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleSmall
@@ -374,7 +403,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                                   style: Theme.of(context)
                                       .textTheme
                                       .labelLarge
-                                      ?.copyWith(color: palette.foregroundMuted),
+                                      ?.copyWith(
+                                          color: palette.foregroundMuted),
                                 ),
                               ],
                             ),
@@ -390,8 +420,11 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                             ),
                             const SizedBox(height: 18),
                             Text(
-                              'Opsi card',
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              l10n.cardOptions,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(
                                     color: palette.foreground,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -402,18 +435,21 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                               runSpacing: 10,
                               children: [
                                 _ShareToggleChip(
-                                  label: 'Artwork background',
+                                  label: l10n.artworkBackground,
                                   selected: showArtworkBackground,
                                   onTap: () => setModalState(() {
-                                    selectedPreset = LyricsShareLayoutPreset.custom;
-                                    showArtworkBackground = !showArtworkBackground;
+                                    selectedPreset =
+                                        LyricsShareLayoutPreset.custom;
+                                    showArtworkBackground =
+                                        !showArtworkBackground;
                                   }),
                                 ),
                                 _ShareToggleChip(
-                                  label: 'Footer info lagu',
+                                  label: l10n.footerSongInfo,
                                   selected: showFooter,
                                   onTap: () => setModalState(() {
-                                    selectedPreset = LyricsShareLayoutPreset.custom;
+                                    selectedPreset =
+                                        LyricsShareLayoutPreset.custom;
                                     showFooter = !showFooter;
                                   }),
                                 ),
@@ -427,7 +463,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                                   _LyricsShareConfig(
                                     theme: selectedTheme,
                                     format: selectedFormat,
-                                    showArtworkBackground: showArtworkBackground,
+                                    showArtworkBackground:
+                                        showArtworkBackground,
                                     showFooter: showFooter,
                                     textAlignment: textAlignment,
                                     fontScale: fontScale,
@@ -438,8 +475,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                                 icon: const Icon(Icons.ios_share_rounded),
                                 label: Text(
                                   selectedFormat == LyricsShareFormat.story
-                                      ? 'Bagikan Story 9:16'
-                                      : 'Bagikan Gambar',
+                                      ? l10n.shareStory
+                                      : l10n.shareImage,
                                 ),
                               ),
                             ),
@@ -499,8 +536,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
     Overlay.of(context, rootOverlay: true).insert(overlay);
     try {
       await Future<void>.delayed(const Duration(milliseconds: 40));
-      final boundary =
-          boundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      final boundary = boundaryKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
       if (boundary == null) {
         throw StateError('Share boundary not ready');
       }
@@ -517,8 +554,9 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
       if (!await shareDir.exists()) {
         await shareDir.create(recursive: true);
       }
-      final sanitized =
-          widget.song.title.replaceAll(RegExp(r'[^a-zA-Z0-9]+'), '_').toLowerCase();
+      final sanitized = widget.song.title
+          .replaceAll(RegExp(r'[^a-zA-Z0-9]+'), '_')
+          .toLowerCase();
       final file = File(
         '${shareDir.path}/lyrics_${config.format.name}_${sanitized}_${DateTime.now().millisecondsSinceEpoch}.png',
       );
@@ -531,6 +569,7 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final palette = LyricsThemePalette.fromTheme(context);
     return Scaffold(
       body: Stack(
@@ -568,10 +607,9 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
               child: StreamBuilder<Duration>(
                 stream: widget.controller.player.positionStream,
                 builder: (context, snapshot) {
-                  final activeIndex =
-                      _resolveActiveIndex(
-                        snapshot.data ?? widget.controller.position,
-                      );
+                  final activeIndex = _resolveActiveIndex(
+                    snapshot.data ?? widget.controller.position,
+                  );
                   return Column(
                     children: [
                       Row(
@@ -626,9 +664,8 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                             height: 48,
                             child: _isSelectionMode
                                 ? IconButton(
-                                    onPressed: _sharing
-                                        ? null
-                                        : _shareSelectedLyrics,
+                                    onPressed:
+                                        _sharing ? null : _shareSelectedLyrics,
                                     icon: _sharing
                                         ? const SizedBox(
                                             width: 18,
@@ -640,7 +677,7 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                                           )
                                         : const Icon(Icons.ios_share_rounded),
                                     color: Colors.white,
-                                    tooltip: 'Bagikan lirik terpilih',
+                                    tooltip: l10n.shareSelectedLyrics,
                                   )
                                 : const SizedBox.shrink(),
                           ),
@@ -652,18 +689,19 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                           children: [
                             Expanded(
                               child: Text(
-                                '${_selectedIndices.length} baris dipilih',
+                                l10n.linesSelected(_selectedIndices.length),
                                 style: Theme.of(context)
                                     .textTheme
                                     .labelLarge
                                     ?.copyWith(
-                                      color: Colors.white.withValues(alpha: 0.86),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.86),
                                     ),
                               ),
                             ),
                             TextButton(
                               onPressed: _clearSelection,
-                              child: const Text('Batal pilih'),
+                              child: Text(l10n.cancelSelection),
                             ),
                           ],
                         ),
@@ -685,7 +723,7 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
                               ),
                             ),
                             child: Text(
-                              'Source: ${widget.source!.label}',
+                              l10n.sourceText(widget.source!.label),
                               style: Theme.of(
                                 context,
                               ).textTheme.labelMedium?.copyWith(
@@ -731,6 +769,55 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
     }
     return active;
   }
+}
+
+String _lyricsShareThemeLabel(AppLocalizations l10n, LyricsShareTheme theme) {
+  return switch (theme) {
+    LyricsShareTheme.laras => 'Laras Night',
+    LyricsShareTheme.aurora => 'Aurora Glow',
+    LyricsShareTheme.daylight => 'Daylight Paper',
+  };
+}
+
+String _lyricsShareFormatLabel(
+    AppLocalizations l10n, LyricsShareFormat format) {
+  return switch (format) {
+    LyricsShareFormat.square => l10n.isIndonesian ? 'Persegi' : 'Square',
+    LyricsShareFormat.story => 'Instagram Story',
+  };
+}
+
+String _lyricsShareFontWeightLabel(
+    AppLocalizations l10n, LyricsShareFontWeight weight) {
+  return switch (weight) {
+    LyricsShareFontWeight.medium => l10n.isIndonesian ? 'Medium' : 'Medium',
+    LyricsShareFontWeight.semibold =>
+      l10n.isIndonesian ? 'Semi Bold' : 'Semibold',
+    LyricsShareFontWeight.bold => 'Bold',
+    LyricsShareFontWeight.heavy => l10n.isIndonesian ? 'Tebal' : 'Heavy',
+  };
+}
+
+String _lyricsSharePresetLabel(
+    AppLocalizations l10n, LyricsShareLayoutPreset preset) {
+  return switch (preset) {
+    LyricsShareLayoutPreset.quote => 'Quote',
+    LyricsShareLayoutPreset.poster => 'Poster',
+    LyricsShareLayoutPreset.story => 'Story',
+    LyricsShareLayoutPreset.custom => l10n.isIndonesian ? 'Kustom' : 'Custom',
+  };
+}
+
+String _lyricsShareAlignmentLabel(
+    AppLocalizations l10n, LyricsShareTextAlignment alignment) {
+  return switch (alignment) {
+    LyricsShareTextAlignment.left =>
+      l10n.isIndonesian ? 'Rata kiri' : 'Align left',
+    LyricsShareTextAlignment.center =>
+      l10n.isIndonesian ? 'Rata tengah' : 'Center',
+    LyricsShareTextAlignment.right =>
+      l10n.isIndonesian ? 'Rata kanan' : 'Align right',
+  };
 }
 
 class LyricsThemePalette {
@@ -857,7 +944,8 @@ enum LyricsShareFormat {
   square('Square', '1:1', 1080, 1080),
   story('Instagram Story', '9:16', 1080, 1920);
 
-  const LyricsShareFormat(this.label, this.description, this.width, this.height);
+  const LyricsShareFormat(
+      this.label, this.description, this.width, this.height);
 
   final String label;
   final String description;
@@ -991,14 +1079,16 @@ enum LyricsShareLayoutPreset {
 }
 
 enum LyricsShareTextAlignment {
-  left('Rata kiri', TextAlign.left, Alignment.centerLeft, CrossAxisAlignment.start),
+  left('Rata kiri', TextAlign.left, Alignment.centerLeft,
+      CrossAxisAlignment.start),
   center(
     'Rata tengah',
     TextAlign.center,
     Alignment.center,
     CrossAxisAlignment.center,
   ),
-  right('Rata kanan', TextAlign.right, Alignment.centerRight, CrossAxisAlignment.end);
+  right('Rata kanan', TextAlign.right, Alignment.centerRight,
+      CrossAxisAlignment.end);
 
   const LyricsShareTextAlignment(
     this.label,
@@ -1113,7 +1203,9 @@ class _LyricsTimelineListState extends State<LyricsTimelineList> {
               : null,
           child: InkWell(
             borderRadius: BorderRadius.circular(18),
-            onTap: widget.onLineTap == null ? null : () => widget.onLineTap!(index),
+            onTap: widget.onLineTap == null
+                ? null
+                : () => widget.onLineTap!(index),
             onLongPress: () => widget.onLineLongPress?.call(index),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
@@ -1121,7 +1213,8 @@ class _LyricsTimelineListState extends State<LyricsTimelineList> {
                 widget.lyrics[index].text,
                 textAlign: TextAlign.left,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: active ? widget.foregroundColor : widget.fadedColor,
+                      color:
+                          active ? widget.foregroundColor : widget.fadedColor,
                       fontWeight: active ? FontWeight.w800 : FontWeight.w700,
                       height: 1.18,
                     ),
@@ -1222,12 +1315,14 @@ class LyricsShareCard extends StatelessWidget {
               ),
               child: minimal
                   ? _buildMinimalLayout(
+                      context: context,
                       palette: palette,
                       story: story,
                       lineText: lineText,
                       lyricStyle: lyricStyle,
                     )
                   : _buildStandardLayout(
+                      context: context,
                       palette: palette,
                       story: story,
                       lineText: lineText,
@@ -1241,6 +1336,7 @@ class LyricsShareCard extends StatelessWidget {
   }
 
   Widget _buildStandardLayout({
+    required BuildContext context,
     required LyricsSharePalette palette,
     required bool story,
     required String lineText,
@@ -1267,12 +1363,13 @@ class LyricsShareCard extends StatelessWidget {
         SizedBox(height: story ? 28 : 22),
         _buildFooterCard(palette: palette, story: story),
         SizedBox(height: story ? 18 : 14),
-        _buildMetaLabel(palette: palette, story: story),
+        _buildMetaLabel(context: context, palette: palette, story: story),
       ],
     );
   }
 
   Widget _buildMinimalLayout({
+    required BuildContext context,
     required LyricsSharePalette palette,
     required bool story,
     required String lineText,
@@ -1345,7 +1442,7 @@ class LyricsShareCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            _buildMetaLabel(palette: palette, story: story),
+            _buildMetaLabel(context: context, palette: palette, story: story),
           ],
         ),
       ],
@@ -1449,13 +1546,17 @@ class LyricsShareCard extends StatelessWidget {
   }
 
   Widget _buildMetaLabel({
+    required BuildContext context,
     required LyricsSharePalette palette,
     required bool story,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     return Align(
       alignment: Alignment.centerRight,
       child: Text(
-        story ? 'Instagram Story • ${format.description}' : 'Shared from Laras',
+        story
+            ? l10n.instagramStoryLabel(format.description)
+            : l10n.sharedFromLaras,
         textAlign: TextAlign.right,
         style: TextStyle(
           color: palette.foregroundMuted,
@@ -1625,6 +1726,7 @@ class _ShareThemeChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = theme.palette;
+    final l10n = AppLocalizations.of(context)!;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
@@ -1652,7 +1754,7 @@ class _ShareThemeChip extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             Text(
-              theme.label,
+              _lyricsShareThemeLabel(l10n, theme),
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: palette.foreground,
                     fontWeight: FontWeight.w700,
@@ -1679,6 +1781,7 @@ class _ShareFormatChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
@@ -1701,7 +1804,7 @@ class _ShareFormatChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              format.label,
+              _lyricsShareFormatLabel(l10n, format),
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: scheme.onSurface,
                     fontWeight: FontWeight.w700,
@@ -1789,6 +1892,7 @@ class _ShareTextAlignmentChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final icon = switch (alignment) {
       LyricsShareTextAlignment.left => Icons.format_align_left_rounded,
       LyricsShareTextAlignment.center => Icons.format_align_center_rounded,
@@ -1821,7 +1925,7 @@ class _ShareTextAlignmentChip extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              alignment.label,
+              _lyricsShareAlignmentLabel(l10n, alignment),
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: scheme.onSurface,
                     fontWeight: FontWeight.w600,
@@ -1848,6 +1952,7 @@ class _ShareFontWeightChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
@@ -1866,7 +1971,7 @@ class _ShareFontWeightChip extends StatelessWidget {
           ),
         ),
         child: Text(
-          weight.label,
+          _lyricsShareFontWeightLabel(l10n, weight),
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: scheme.onSurface,
                 fontWeight: weight.value,
@@ -1891,6 +1996,7 @@ class _ShareLayoutPresetChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
@@ -1909,7 +2015,7 @@ class _ShareLayoutPresetChip extends StatelessWidget {
           ),
         ),
         child: Text(
-          preset.label,
+          _lyricsSharePresetLabel(l10n, preset),
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: scheme.onSurface,
                 fontWeight: FontWeight.w700,

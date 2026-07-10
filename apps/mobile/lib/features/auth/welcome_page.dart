@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../../core/app_icon_controller.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
+import '../../core/locale_controller.dart';
 import '../../core/theme_controller.dart';
+import '../../l10n/app_localizations.dart';
 import '../home_shell.dart';
 import '../library/local_music_store.dart';
 import 'login_page.dart';
@@ -14,6 +16,7 @@ class WelcomePage extends StatelessWidget {
     required this.api,
     required this.authStore,
     required this.themeController,
+    required this.localeController,
     required this.appIconController,
     required this.localStore,
     required this.player,
@@ -22,12 +25,14 @@ class WelcomePage extends StatelessWidget {
   final ApiClient api;
   final AuthStore authStore;
   final ThemeController themeController;
+  final LocaleController localeController;
   final AppIconController appIconController;
   final LocalMusicStore localStore;
   final PlayerController player;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -41,20 +46,23 @@ class WelcomePage extends StatelessWidget {
                 children: [
                   const Icon(Icons.music_note, size: 72),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Laras',
+                  Text(
+                    l10n.appTitle,
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Offline-first music player. Streaming server hanya fitur tambahan.',
+                  Text(
+                    l10n.welcomeTagline,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
                   FilledButton.icon(
                     icon: const Icon(Icons.offline_bolt),
-                    label: const Text('Continue Offline'),
+                    label: Text(l10n.continueOffline),
                     onPressed: () async {
                       await authStore.markOfflineHomeSeen();
                       if (!context.mounted) return;
@@ -64,6 +72,7 @@ class WelcomePage extends StatelessWidget {
                             api: api,
                             authStore: authStore,
                             themeController: themeController,
+                            localeController: localeController,
                             appIconController: appIconController,
                             localStore: localStore,
                             player: player,
@@ -75,13 +84,14 @@ class WelcomePage extends StatelessWidget {
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     icon: const Icon(Icons.login),
-                    label: const Text('Login to Laras Server'),
+                    label: Text(l10n.loginToServer),
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => LoginPage(
                           api: api,
                           authStore: authStore,
                           themeController: themeController,
+                          localeController: localeController,
                           appIconController: appIconController,
                           localStore: localStore,
                           player: player,
@@ -91,13 +101,14 @@ class WelcomePage extends StatelessWidget {
                   ),
                   TextButton.icon(
                     icon: const Icon(Icons.person_add),
-                    label: const Text('Register'),
+                    label: Text(l10n.register),
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => LoginPage(
                           api: api,
                           authStore: authStore,
                           themeController: themeController,
+                          localeController: localeController,
                           appIconController: appIconController,
                           localStore: localStore,
                           player: player,

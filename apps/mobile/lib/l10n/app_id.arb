@@ -1,0 +1,100 @@
+{
+  "@@locale": "id",
+  "appTitle": "Laras",
+  "playbackChannelName": "Laras Playback",
+  "navLocal": "Lokal",
+  "navServer": "Server",
+  "navPlaylists": "Playlist",
+  "navSettings": "Pengaturan",
+  "statusOffline": "Offline",
+  "statusServer": "Server",
+  "welcomeTagline": "Pemutar musik offline-first. Server streaming hanya fitur tambahan.",
+  "continueOffline": "Lanjut Offline",
+  "loginToServer": "Login ke Laras Server",
+  "register": "Daftar",
+  "loginServerAccount": "Login Akun Server",
+  "registerServerAccount": "Daftar Akun Server",
+  "larasServer": "Laras Server",
+  "loginDescription": "Login hanya diperlukan untuk upload, streaming, sinkronisasi, dan unduhan offline dari server.",
+  "fieldName": "Nama",
+  "fieldEmail": "Email",
+  "fieldPassword": "Kata Sandi",
+  "login": "Login",
+  "alreadyHaveAccount": "Sudah punya akun? Login",
+  "dontHaveAccount": "Belum punya akun? Daftar",
+  "loginFailed": "Gagal: {error}",
+  "@loginFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "modeServerActive": "Mode Server aktif",
+  "modeLocalActive": "Mode Lokal aktif",
+  "modeServerSubtitle": "Kamu login ke Laras Server. Pemutar lokal tetap bisa dipakai.",
+  "modeLocalSubtitle": "Kamu memakai Laras tanpa login. Lagu, favorit, dan playlist lokal tersimpan di perangkat.",
+  "theme": "Tema",
+  "themeSystem": "Sistem",
+  "themeLight": "Terang",
+  "themeDark": "Gelap",
+  "language": "Bahasa",
+  "languageSystem": "Sistem",
+  "languageEnglish": "Inggris",
+  "languageIndonesian": "Indonesia",
+  "paletteLarasDefault": "Laras Default",
+  "paletteOceanBlue": "Biru Laut",
+  "paletteBurntOrange": "Oranye Tua",
+  "paletteRosePink": "Merah Muda",
+  "paletteEarthBrown": "Cokelat Bumi",
+  "paletteCustom": "Kustom",
+  "appIcon": "Ikon Aplikasi",
+  "sleepTimer": "Timer Tidur",
+  "stopPlaybackAutomatically": "Hentikan pemutaran otomatis",
+  "remaining": "Sisa: {value}",
+  "@remaining": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "off": "Mati",
+  "minutesSeconds": "{minutes}m {seconds}s",
+  "@minutesSeconds": {
+    "placeholders": {
+      "minutes": {},
+      "seconds": {}
+    }
+  },
+  "lyricsLrc": "Lirik .lrc",
+  "lyricsLrcDescription": "Now Playing memprioritaskan .lrc, lalu fallback ke metadata lirik bila tersedia.",
+  "systemEqualizer": "Equalizer Sistem",
+  "systemEqualizerDescription": "Buka equalizer Android bawaan bila perangkat mendukung.",
+  "backgroundLockScreen": "Latar / Lock Screen",
+  "backgroundLockScreenDescription": "Media service, kontrol notifikasi, dan tombol media sudah disiapkan di Android manifest.",
+  "account": "Akun",
+  "loginToServerDescription": "Gunakan server pribadi untuk upload, stream, dan sinkronisasi.",
+  "registerServerDescription": "Buat akun server pribadi Laras.",
+  "logoutFromServer": "Logout dari server",
+  "logoutFromServerDescription": "Tidak menghapus library, favorit, atau playlist lokal.",
+  "offlineStillPrimary": "Offline tetap utama",
+  "offlineStillPrimaryDescription": "Login server hanya fitur tambahan dan bisa diakses kapan saja dari Pengaturan.",
+  "equalizerOpened": "Equalizer Android dibuka",
+  "equalizerUnavailable": "Equalizer tidak tersedia. Mulai playback dulu.",
+  "launcherIconSwitched": "Ikon launcher diganti ke {label}.",
+  "@launcherIconSwitched": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "launcherIconFailed": "Gagal mengganti ikon launcher.",
+  "iconDefault": "Default",
+  "iconDark": "Gelap",
+  "iconNeon": "Neon",
+  "iconDefaultDescription": "Ikon standar Laras",
+  "iconDarkDescription": "Versi gelap dan subtle",
+  "iconNeonDescription": "Versi terang dengan neon",
+  "pickThemeColor": "Pilih warna tema",
+  "hue": "Hue",
+  "saturation": "Saturasi",
+  "brightness": "Kecerahan",
+  "cancel": "Batal",
+  "apply": "Pakai"
+}

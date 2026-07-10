@@ -1,0 +1,100 @@
+{
+  "@@locale": "en",
+  "appTitle": "Laras",
+  "playbackChannelName": "Laras Playback",
+  "navLocal": "Local",
+  "navServer": "Server",
+  "navPlaylists": "Playlists",
+  "navSettings": "Settings",
+  "statusOffline": "Offline",
+  "statusServer": "Server",
+  "welcomeTagline": "Offline-first music player. Streaming server is only an extra feature.",
+  "continueOffline": "Continue Offline",
+  "loginToServer": "Login to Laras Server",
+  "register": "Register",
+  "loginServerAccount": "Login Server Account",
+  "registerServerAccount": "Register Server Account",
+  "larasServer": "Laras Server",
+  "loginDescription": "Login is only required for upload, streaming, sync, and offline download from the server.",
+  "fieldName": "Name",
+  "fieldEmail": "Email",
+  "fieldPassword": "Password",
+  "login": "Login",
+  "alreadyHaveAccount": "Already have an account? Login",
+  "dontHaveAccount": "Don't have an account? Register",
+  "loginFailed": "Failed: {error}",
+  "@loginFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "modeServerActive": "Server Mode active",
+  "modeLocalActive": "Local Mode active",
+  "modeServerSubtitle": "You are logged in to Laras Server. The local player is still available.",
+  "modeLocalSubtitle": "You are using Laras without login. Songs, favorites, and local playlists are stored on the device.",
+  "theme": "Theme",
+  "themeSystem": "System",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "language": "Language",
+  "languageSystem": "System",
+  "languageEnglish": "English",
+  "languageIndonesian": "Indonesian",
+  "paletteLarasDefault": "Laras Default",
+  "paletteOceanBlue": "Ocean Blue",
+  "paletteBurntOrange": "Burnt Orange",
+  "paletteRosePink": "Rose Pink",
+  "paletteEarthBrown": "Earth Brown",
+  "paletteCustom": "Custom",
+  "appIcon": "App Icon",
+  "sleepTimer": "Sleep Timer",
+  "stopPlaybackAutomatically": "Stop playback automatically",
+  "remaining": "Remaining: {value}",
+  "@remaining": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "off": "Off",
+  "minutesSeconds": "{minutes}m {seconds}s",
+  "@minutesSeconds": {
+    "placeholders": {
+      "minutes": {},
+      "seconds": {}
+    }
+  },
+  "lyricsLrc": "Lyrics .lrc",
+  "lyricsLrcDescription": "Now Playing prioritizes .lrc, then falls back to lyric metadata when available.",
+  "systemEqualizer": "System Equalizer",
+  "systemEqualizerDescription": "Open the built-in Android equalizer when supported by the device.",
+  "backgroundLockScreen": "Background / Lock Screen",
+  "backgroundLockScreenDescription": "Media service, notification control, and media buttons are already configured in the Android manifest.",
+  "account": "Account",
+  "loginToServerDescription": "Use your private server for upload, stream, and sync.",
+  "registerServerDescription": "Create your personal Laras server account.",
+  "logoutFromServer": "Logout from server",
+  "logoutFromServerDescription": "Does not delete local library, favorites, or playlists.",
+  "offlineStillPrimary": "Offline stays primary",
+  "offlineStillPrimaryDescription": "Server login is only an extra feature and can be accessed any time from Settings.",
+  "equalizerOpened": "Opened Android equalizer",
+  "equalizerUnavailable": "Equalizer unavailable. Start playback first.",
+  "launcherIconSwitched": "Launcher icon switched to {label}.",
+  "@launcherIconSwitched": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "launcherIconFailed": "Failed to change launcher icon.",
+  "iconDefault": "Default",
+  "iconDark": "Dark",
+  "iconNeon": "Neon",
+  "iconDefaultDescription": "Standard Laras icon",
+  "iconDarkDescription": "A darker and subtler version",
+  "iconNeonDescription": "A brighter version with neon",
+  "pickThemeColor": "Pick theme color",
+  "hue": "Hue",
+  "saturation": "Saturation",
+  "brightness": "Brightness",
+  "cancel": "Cancel",
+  "apply": "Apply"
+}

@@ -1,13 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:just_audio_background/just_audio_background.dart';
+import 'l10n/app_localizations.dart';
 import 'core/app_icon_controller.dart';
 import 'core/app_settings_store.dart';
 import 'core/api_client.dart';
 import 'core/auth_store.dart';
 import 'core/home_widget_command_bus.dart';
+import 'core/locale_controller.dart';
 import 'core/theme_controller.dart';
 import 'features/auth/welcome_page.dart';
 import 'features/home_shell.dart';
@@ -37,6 +40,8 @@ Future<void> main() async {
   final appSettingsStore = AppSettingsStore();
   final themeController = ThemeController(appSettingsStore);
   await themeController.load();
+  final localeController = LocaleController(appSettingsStore);
+  await localeController.load();
   final appIconController = AppIconController(appSettingsStore);
   await appIconController.load();
   final localStore = LocalMusicStore();
@@ -45,6 +50,7 @@ Future<void> main() async {
     LarasApp(
       authStore: authStore,
       themeController: themeController,
+      localeController: localeController,
       appIconController: appIconController,
       localStore: localStore,
       player: playerController,
@@ -62,12 +68,14 @@ class LarasApp extends StatefulWidget {
     super.key,
     required this.authStore,
     required this.themeController,
+    required this.localeController,
     required this.appIconController,
     required this.localStore,
     required this.player,
   });
   final AuthStore authStore;
   final ThemeController themeController;
+  final LocaleController localeController;
   final AppIconController appIconController;
   final LocalMusicStore localStore;
   final PlayerController player;
@@ -115,12 +123,14 @@ class _LarasAppState extends State<LarasApp> {
     super.initState();
     api = ApiClient(baseUrl: apiBaseUrl, authStore: widget.authStore);
     widget.themeController.addListener(_refresh);
+    widget.localeController.addListener(_refresh);
     widget.appIconController.addListener(_refresh);
   }
 
   @override
   void dispose() {
     widget.themeController.removeListener(_refresh);
+    widget.localeController.removeListener(_refresh);
     widget.appIconController.removeListener(_refresh);
     unawaited(widget.player.close());
     super.dispose();
@@ -134,8 +144,16 @@ class _LarasAppState extends State<LarasApp> {
   Widget build(BuildContext context) {
     final seed = widget.themeController.seedColor;
     return MaterialApp(
-      title: 'Laras',
+      onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       debugShowCheckedModeBanner: false,
+      locale: widget.localeController.locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       themeMode: widget.themeController.themeMode,
       theme: _buildTheme(seed: seed, brightness: Brightness.light),
       darkTheme: _buildTheme(seed: seed, brightness: Brightness.dark),
@@ -146,6 +164,7 @@ class _LarasAppState extends State<LarasApp> {
                   api: api,
                   authStore: widget.authStore,
                   themeController: widget.themeController,
+                  localeController: widget.localeController,
                   appIconController: widget.appIconController,
                   localStore: widget.localStore,
                   player: widget.player,
@@ -154,6 +173,7 @@ class _LarasAppState extends State<LarasApp> {
                   api: api,
                   authStore: widget.authStore,
                   themeController: widget.themeController,
+                  localeController: widget.localeController,
                   appIconController: widget.appIconController,
                   localStore: widget.localStore,
                   player: widget.player,

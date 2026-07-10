@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ext.dart';
 import '../player/player_controller.dart';
 import 'local_music_store.dart';
 import 'playback_insights_page.dart';
@@ -68,6 +70,7 @@ class _ServerDashboardPageState extends State<ServerDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -81,7 +84,7 @@ class _ServerDashboardPageState extends State<ServerDashboardPage> {
             children: [
               Expanded(
                 child: Text(
-                  'Server Dashboard',
+                  l10n.serverDashboard,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
@@ -90,7 +93,7 @@ class _ServerDashboardPageState extends State<ServerDashboardPage> {
               FilledButton.icon(
                 onPressed: upload,
                 icon: const Icon(Icons.upload),
-                label: const Text('Upload'),
+                label: Text(l10n.upload),
               ),
             ],
           ),
@@ -105,7 +108,7 @@ class _ServerDashboardPageState extends State<ServerDashboardPage> {
             const SizedBox(height: 16),
             ServerPlaybackPreviewSection(
               title: 'Recently Played',
-              subtitle: 'Lagu server yang baru kamu putar',
+              subtitle: l10n.serverRecentlyPlayedSubtitle,
               entries: recentEntries,
               emptyIcon: Icons.history,
               onViewAll: () => Navigator.of(context)
@@ -131,8 +134,8 @@ class _ServerDashboardPageState extends State<ServerDashboardPage> {
             const SizedBox(height: 14),
           if (mostPlayedEntries.isNotEmpty)
             ServerPlaybackPreviewSection(
-              title: 'Most Played',
-              subtitle: 'Lagu server yang paling sering kamu putar',
+              title: l10n.mostPlayedLabel,
+              subtitle: l10n.serverMostPlayedSubtitle,
               entries: mostPlayedEntries,
               emptyIcon: Icons.bar_chart_rounded,
               showRank: true,
@@ -156,11 +159,11 @@ class _ServerDashboardPageState extends State<ServerDashboardPage> {
             ),
           if (recentEntries.isEmpty && mostPlayedEntries.isEmpty) ...[
             const SizedBox(height: 24),
-            const Center(
+            Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Belum ada playback server. Mulai putar lagu server dulu.',
+                  l10n.serverDashboardEmpty,
                   textAlign: TextAlign.center,
                 ),
               ),

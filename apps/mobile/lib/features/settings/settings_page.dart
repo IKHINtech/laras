@@ -4,7 +4,9 @@ import '../../core/app_icon_controller.dart';
 import '../../core/equalizer_bridge.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
+import '../../core/locale_controller.dart';
 import '../../core/theme_controller.dart';
+import '../../l10n/app_localizations.dart';
 import '../library/local_music_store.dart';
 import '../auth/login_page.dart';
 import '../player/player_controller.dart';
@@ -18,6 +20,7 @@ class SettingsPage extends StatefulWidget {
     required this.store,
     required this.player,
     required this.themeController,
+    required this.localeController,
     required this.appIconController,
     required this.onLogout,
   });
@@ -28,6 +31,7 @@ class SettingsPage extends StatefulWidget {
   final LocalMusicStore store;
   final PlayerController player;
   final ThemeController themeController;
+  final LocaleController localeController;
   final AppIconController appIconController;
   final Future<void> Function() onLogout;
 
@@ -38,32 +42,34 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   static const _seedOptions = <_ThemePaletteOption>[
     _ThemePaletteOption(
-      label: 'Laras Default',
+      palette: ThemePalette.larasDefault,
       color: ThemeController.defaultSeedColor,
     ),
     _ThemePaletteOption(
-      label: 'Ocean Blue',
+      palette: ThemePalette.oceanBlue,
       color: Color(0xFF1565C0),
     ),
     _ThemePaletteOption(
-      label: 'Burnt Orange',
+      palette: ThemePalette.burntOrange,
       color: Color(0xFFB3541E),
     ),
     _ThemePaletteOption(
-      label: 'Rose Pink',
+      palette: ThemePalette.rosePink,
       color: Color(0xFFAD1457),
     ),
     _ThemePaletteOption(
-      label: 'Earth Brown',
+      palette: ThemePalette.earthBrown,
       color: Color(0xFF4E342E),
     ),
   ];
 
   Future<void> _openSeedColorPicker() async {
+    final l10n = AppLocalizations.of(context)!;
     final picked = await showDialog<Color>(
       context: context,
       builder: (_) => _SeedColorPickerDialog(
         initialColor: widget.themeController.seedColor,
+        l10n: l10n,
       ),
     );
     if (picked == null) return;
@@ -75,6 +81,7 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     widget.player.addListener(_refresh);
     widget.themeController.addListener(_refresh);
+    widget.localeController.addListener(_refresh);
     widget.appIconController.addListener(_refresh);
   }
 
@@ -82,6 +89,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void dispose() {
     widget.player.removeListener(_refresh);
     widget.themeController.removeListener(_refresh);
+    widget.localeController.removeListener(_refresh);
     widget.appIconController.removeListener(_refresh);
     super.dispose();
   }
@@ -90,11 +98,37 @@ class _SettingsPageState extends State<SettingsPage> {
     if (mounted) setState(() {});
   }
 
-  String _formatRemaining(Duration? duration) {
-    if (duration == null) return 'Off';
+  String _paletteLabel(AppLocalizations l10n, ThemePalette palette) {
+    return switch (palette) {
+      ThemePalette.larasDefault => l10n.paletteLarasDefault,
+      ThemePalette.oceanBlue => l10n.paletteOceanBlue,
+      ThemePalette.burntOrange => l10n.paletteBurntOrange,
+      ThemePalette.rosePink => l10n.paletteRosePink,
+      ThemePalette.earthBrown => l10n.paletteEarthBrown,
+    };
+  }
+
+  String _iconLabel(AppLocalizations l10n, AppIconVariant variant) {
+    return switch (variant) {
+      AppIconVariant.defaultIcon => l10n.iconDefault,
+      AppIconVariant.dark => l10n.iconDark,
+      AppIconVariant.neon => l10n.iconNeon,
+    };
+  }
+
+  String _iconDescription(AppLocalizations l10n, AppIconVariant variant) {
+    return switch (variant) {
+      AppIconVariant.defaultIcon => l10n.iconDefaultDescription,
+      AppIconVariant.dark => l10n.iconDarkDescription,
+      AppIconVariant.neon => l10n.iconNeonDescription,
+    };
+  }
+
+  String _formatRemaining(AppLocalizations l10n, Duration? duration) {
+    if (duration == null) return l10n.off;
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds % 60;
-    return '${minutes}m ${seconds.toString().padLeft(2, '0')}s';
+    return l10n.minutesSeconds(minutes, seconds.toString().padLeft(2, '0'));
   }
 
   Future<void> _openEqualizer() async {
@@ -102,12 +136,11 @@ class _SettingsPageState extends State<SettingsPage> {
       widget.player.androidAudioSessionId,
     );
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          ok
-              ? 'Opened Android equalizer'
-              : 'Equalizer unavailable. Start playback first.',
+          ok ? l10n.equalizerOpened : l10n.equalizerUnavailable,
         ),
       ),
     );
@@ -116,12 +149,13 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _changeAppIcon(AppIconVariant variant) async {
     final changed = await widget.appIconController.setVariant(variant);
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           changed
-              ? 'Launcher icon switched to ${variant.label}.'
-              : 'Gagal mengganti icon launcher.',
+              ? l10n.launcherIconSwitched(_iconLabel(l10n, variant))
+              : l10n.launcherIconFailed,
         ),
       ),
     );
@@ -129,6 +163,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final sleepRemaining = widget.player.sleepTimerRemaining;
     final theme = widget.themeController;
 
@@ -139,21 +174,25 @@ class _SettingsPageState extends State<SettingsPage> {
           leading:
               Icon(widget.isLoggedIn ? Icons.cloud_done : Icons.offline_bolt),
           title: Text(
-              widget.isLoggedIn ? 'Server Mode aktif' : 'Local Mode aktif'),
+            widget.isLoggedIn ? l10n.modeServerActive : l10n.modeLocalActive,
+          ),
           subtitle: Text(
             widget.isLoggedIn
-                ? 'Kamu login ke Laras Server. Local player tetap bisa dipakai.'
-                : 'Kamu memakai Laras tanpa login. Lagu, favorite, dan playlist lokal tersimpan di device.',
+                ? l10n.modeServerSubtitle
+                : l10n.modeLocalSubtitle,
           ),
         ),
         const Divider(),
-        Text('Theme', style: Theme.of(context).textTheme.titleMedium),
+        Text(l10n.theme, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         SegmentedButton<ThemeMode>(
-          segments: const [
-            ButtonSegment(value: ThemeMode.system, label: Text('System')),
-            ButtonSegment(value: ThemeMode.light, label: Text('Light')),
-            ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
+          segments: [
+            ButtonSegment(
+              value: ThemeMode.system,
+              label: Text(l10n.themeSystem),
+            ),
+            ButtonSegment(value: ThemeMode.light, label: Text(l10n.themeLight)),
+            ButtonSegment(value: ThemeMode.dark, label: Text(l10n.themeDark)),
           ],
           selected: {theme.themeMode},
           onSelectionChanged: (value) => theme.setThemeMode(value.first),
@@ -208,7 +247,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      option.label,
+                      _paletteLabel(l10n, option.palette),
                       textAlign: TextAlign.center,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -271,7 +310,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Custom',
+                      l10n.paletteCustom,
                       textAlign: TextAlign.center,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -284,7 +323,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ]).toList(),
         ),
         const SizedBox(height: 20),
-        Text('App Icon', style: Theme.of(context).textTheme.titleMedium),
+        Text(l10n.appIcon, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         Wrap(
           spacing: 12,
@@ -295,16 +334,32 @@ class _SettingsPageState extends State<SettingsPage> {
                   variant: variant,
                   selected: widget.appIconController.currentVariant == variant,
                   onTap: () => _changeAppIcon(variant),
+                  label: _iconLabel(l10n, variant),
+                  description: _iconDescription(l10n, variant),
                 ),
               )
               .toList(),
         ),
         const SizedBox(height: 20),
-        Text('Sleep Timer', style: Theme.of(context).textTheme.titleMedium),
+        Text(l10n.language, style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        SegmentedButton<String>(
+          segments: [
+            ButtonSegment(value: 'system', label: Text(l10n.languageSystem)),
+            ButtonSegment(value: 'id', label: Text(l10n.languageIndonesian)),
+            ButtonSegment(value: 'en', label: Text(l10n.languageEnglish)),
+          ],
+          selected: {widget.localeController.currentCode},
+          onSelectionChanged: (value) =>
+              widget.localeController.setLocaleCode(value.first),
+        ),
+        const SizedBox(height: 20),
+        Text(l10n.sleepTimer, style: Theme.of(context).textTheme.titleMedium),
         ListTile(
           leading: const Icon(Icons.timer),
-          title: const Text('Stop playback automatically'),
-          subtitle: Text('Remaining: ${_formatRemaining(sleepRemaining)}'),
+          title: Text(l10n.stopPlaybackAutomatically),
+          subtitle:
+              Text(l10n.remaining(_formatRemaining(l10n, sleepRemaining))),
           trailing: sleepRemaining == null
               ? null
               : IconButton(
@@ -336,42 +391,35 @@ class _SettingsPageState extends State<SettingsPage> {
         const SizedBox(height: 20),
         ListTile(
           leading: const Icon(Icons.lyrics),
-          title: const Text('Lyrics .lrc'),
-          subtitle: const Text(
-            'Now Playing prioritaskan .lrc, lalu fallback ke metadata lyric bila tersedia.',
-          ),
+          title: Text(l10n.lyricsLrc),
+          subtitle: Text(l10n.lyricsLrcDescription),
         ),
         ListTile(
           leading: const Icon(Icons.equalizer),
-          title: const Text('System Equalizer'),
-          subtitle: const Text(
-            'Buka equalizer Android bawaan bila device mendukung.',
-          ),
+          title: Text(l10n.systemEqualizer),
+          subtitle: Text(l10n.systemEqualizerDescription),
           onTap: _openEqualizer,
         ),
         ListTile(
           leading: const Icon(Icons.notifications_active),
-          title: const Text('Background / Lock Screen'),
-          subtitle: const Text(
-            'Media service, notification control, dan media button sudah disiapkan di Android manifest.',
-          ),
+          title: Text(l10n.backgroundLockScreen),
+          subtitle: Text(l10n.backgroundLockScreenDescription),
         ),
         const Divider(),
         if (!widget.isLoggedIn) ...[
-          Text('Account', style: Theme.of(context).textTheme.titleMedium),
+          Text(l10n.account, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           ListTile(
             leading: const Icon(Icons.login),
-            title: const Text('Login to Laras Server'),
-            subtitle: const Text(
-              'Gunakan server pribadi untuk upload, stream, dan sync.',
-            ),
+            title: Text(l10n.loginToServer),
+            subtitle: Text(l10n.loginToServerDescription),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => LoginPage(
                   api: widget.api,
                   authStore: widget.authStore,
                   themeController: widget.themeController,
+                  localeController: widget.localeController,
                   appIconController: widget.appIconController,
                   localStore: widget.store,
                   player: widget.player,
@@ -381,14 +429,15 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           ListTile(
             leading: const Icon(Icons.person_add),
-            title: const Text('Register Server Account'),
-            subtitle: const Text('Buat akun server pribadi Laras.'),
+            title: Text(l10n.registerServerAccount),
+            subtitle: Text(l10n.registerServerDescription),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => LoginPage(
                   api: widget.api,
                   authStore: widget.authStore,
                   themeController: widget.themeController,
+                  localeController: widget.localeController,
                   appIconController: widget.appIconController,
                   localStore: widget.store,
                   player: widget.player,
@@ -402,18 +451,15 @@ class _SettingsPageState extends State<SettingsPage> {
         if (widget.isLoggedIn)
           ListTile(
             leading: const Icon(Icons.logout),
-            title: const Text('Logout from server'),
-            subtitle:
-                const Text('Tidak menghapus library/favorite/playlist lokal.'),
+            title: Text(l10n.logoutFromServer),
+            subtitle: Text(l10n.logoutFromServerDescription),
             onTap: widget.onLogout,
           )
         else
-          const ListTile(
-            leading: Icon(Icons.info_outline),
-            title: Text('Offline tetap utama'),
-            subtitle: Text(
-              'Server login hanya fitur tambahan dan bisa diakses kapan saja dari Settings.',
-            ),
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: Text(l10n.offlineStillPrimary),
+            subtitle: Text(l10n.offlineStillPrimaryDescription),
           ),
       ],
     );
@@ -422,12 +468,20 @@ class _SettingsPageState extends State<SettingsPage> {
 
 class _ThemePaletteOption {
   const _ThemePaletteOption({
-    required this.label,
+    required this.palette,
     required this.color,
   });
 
-  final String label;
+  final ThemePalette palette;
   final Color color;
+}
+
+enum ThemePalette {
+  larasDefault,
+  oceanBlue,
+  burntOrange,
+  rosePink,
+  earthBrown,
 }
 
 class _AppIconPreviewCard extends StatelessWidget {
@@ -435,11 +489,15 @@ class _AppIconPreviewCard extends StatelessWidget {
     required this.variant,
     required this.selected,
     required this.onTap,
+    required this.label,
+    required this.description,
   });
 
   final AppIconVariant variant;
   final bool selected;
   final VoidCallback onTap;
+  final String label;
+  final String description;
 
   static const _previewAssetByVariant = <AppIconVariant, String>{
     AppIconVariant.defaultIcon:
@@ -496,7 +554,7 @@ class _AppIconPreviewCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              variant.label,
+              label,
               textAlign: TextAlign.center,
               style: theme.textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w600,
@@ -504,11 +562,7 @@ class _AppIconPreviewCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              switch (variant) {
-                AppIconVariant.defaultIcon => 'Icon standar Laras',
-                AppIconVariant.dark => 'Versi gelap dan subtle',
-                AppIconVariant.neon => 'Versi terang dengan neon',
-              },
+              description,
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -525,9 +579,13 @@ class _AppIconPreviewCard extends StatelessWidget {
 }
 
 class _SeedColorPickerDialog extends StatefulWidget {
-  const _SeedColorPickerDialog({required this.initialColor});
+  const _SeedColorPickerDialog({
+    required this.initialColor,
+    required this.l10n,
+  });
 
   final Color initialColor;
+  final AppLocalizations l10n;
 
   @override
   State<_SeedColorPickerDialog> createState() => _SeedColorPickerDialogState();
@@ -546,7 +604,7 @@ class _SeedColorPickerDialogState extends State<_SeedColorPickerDialog> {
   Widget build(BuildContext context) {
     final color = _hsvColor.toColor();
     return AlertDialog(
-      title: const Text('Pilih warna tema'),
+      title: Text(widget.l10n.pickThemeColor),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -567,7 +625,7 @@ class _SeedColorPickerDialogState extends State<_SeedColorPickerDialog> {
             ),
             const SizedBox(height: 12),
             _ColorSlider(
-              label: 'Hue',
+              label: widget.l10n.hue,
               value: _hsvColor.hue,
               max: 360,
               onChanged: (value) => setState(
@@ -575,7 +633,7 @@ class _SeedColorPickerDialogState extends State<_SeedColorPickerDialog> {
               ),
             ),
             _ColorSlider(
-              label: 'Saturation',
+              label: widget.l10n.saturation,
               value: _hsvColor.saturation,
               max: 1,
               onChanged: (value) => setState(
@@ -583,7 +641,7 @@ class _SeedColorPickerDialogState extends State<_SeedColorPickerDialog> {
               ),
             ),
             _ColorSlider(
-              label: 'Brightness',
+              label: widget.l10n.brightness,
               value: _hsvColor.value,
               max: 1,
               onChanged: (value) => setState(
@@ -596,11 +654,11 @@ class _SeedColorPickerDialogState extends State<_SeedColorPickerDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Batal'),
+          child: Text(widget.l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(color),
-          child: const Text('Pakai'),
+          child: Text(widget.l10n.apply),
         ),
       ],
     );

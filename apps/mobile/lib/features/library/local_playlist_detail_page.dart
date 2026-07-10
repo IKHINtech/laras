@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ext.dart';
 import '../player/player_controller.dart';
 import 'local_music_store.dart';
 import 'song.dart';
@@ -77,21 +79,20 @@ class _LocalPlaylistDetailPageState extends State<LocalPlaylistDetailPage> {
   }
 
   Future<bool> _confirmRemoveSong(Song song) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Hapus lagu dari playlist?'),
-        content: Text(
-          '"${song.title}" akan dihapus dari playlist ini.',
-        ),
+        title: Text(l10n.removeSongFromPlaylistTitle),
+        content: Text(l10n.removeSongFromPlaylistMessage(song.title)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Batal'),
+            child: Text(l10n.cancelText),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Hapus'),
+            child: Text(l10n.deleteText),
           ),
         ],
       ),
@@ -132,6 +133,7 @@ class _LocalPlaylistDetailPageState extends State<LocalPlaylistDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final visibleSongs = this.visibleSongs;
     final canReorder = editable && !searching && searchController.text.isEmpty;
     return Scaffold(
@@ -145,8 +147,8 @@ class _LocalPlaylistDetailPageState extends State<LocalPlaylistDetailPage> {
                     controller: searchController,
                     focusNode: searchFocus,
                     autofocus: true,
-                    decoration: const InputDecoration(
-                      hintText: 'Search playlist',
+                    decoration: InputDecoration(
+                      hintText: l10n.searchPlaylist,
                       border: InputBorder.none,
                     ),
                     textInputAction: TextInputAction.search,
@@ -155,7 +157,7 @@ class _LocalPlaylistDetailPageState extends State<LocalPlaylistDetailPage> {
                 : Text(widget.title),
             actions: [
               IconButton(
-                tooltip: searching ? 'Close search' : 'Search',
+                tooltip: searching ? l10n.closeSearch : l10n.searchText,
                 icon: Icon(searching ? Icons.close : Icons.search),
                 onPressed: searching ? _stopSearch : _startSearch,
               ),
@@ -172,9 +174,9 @@ class _LocalPlaylistDetailPageState extends State<LocalPlaylistDetailPage> {
           ),
         ],
         body: songs.isEmpty
-            ? const Center(child: Text('Playlist empty'))
+            ? Center(child: Text(l10n.playlistEmpty))
             : visibleSongs.isEmpty
-                ? const Center(child: Text('No songs match search.'))
+                ? Center(child: Text(l10n.noSongsMatchSearch))
                 : canReorder
                     ? ReorderableListView.builder(
                         padding: const EdgeInsets.only(top: 8, bottom: 16),
