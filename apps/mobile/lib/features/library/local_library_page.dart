@@ -35,7 +35,7 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
   List<RecentPlaybackEntry> recentEntries = [];
   List<RecentPlaybackEntry> mostPlayedEntries = [];
   Set<String> favoriteIds = <String>{};
-  bool loading = false;
+  bool loading = true;
   bool showCollapsedActions = false;
   String? _lastHistorySongId;
 
@@ -79,7 +79,9 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
     favoriteIds = favorites;
     await _refreshCollageSongs();
     await _refreshPlaybackInsights();
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() => loading = false);
+    }
   }
 
   Future<void> _reloadFavorites() async {
@@ -344,7 +346,7 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
 
   Widget _buildSongsTab(List<Song> songs) {
     final l10n = AppLocalizations.of(context)!;
-    if (loading) return const Center(child: CircularProgressIndicator());
+    if (loading) return const _LibraryLoadingList();
     if (songs.isEmpty) {
       return Center(
         child: Text(
@@ -427,7 +429,7 @@ class _LocalLibraryPageState extends State<LocalLibraryPage> {
     required IconData icon,
     required String emptyLabel,
   }) {
-    if (loading) return const Center(child: CircularProgressIndicator());
+    if (loading) return const _LibraryLoadingList();
     if (buckets.isEmpty) return Center(child: Text(emptyLabel));
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 16),
@@ -687,6 +689,130 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant _StickyTabBarDelegate oldDelegate) {
     return oldDelegate.color != color || oldDelegate.tabBar != tabBar;
+  }
+}
+
+class _LibraryLoadingList extends StatelessWidget {
+  const _LibraryLoadingList();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
+      itemCount: 8,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (_, index) => const _LibraryLoadingTile(),
+    );
+  }
+}
+
+class _LibraryLoadingTile extends StatelessWidget {
+  const _LibraryLoadingTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.24),
+        ),
+      ),
+      child: Row(
+        children: [
+          const _ShimmerBox(
+            width: 52,
+            height: 52,
+            borderRadius: 999,
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ShimmerBox(
+                    width: double.infinity, height: 14, borderRadius: 8),
+                SizedBox(height: 10),
+                _ShimmerBox(width: 140, height: 12, borderRadius: 8),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          const _ShimmerBox(
+            width: 22,
+            height: 22,
+            borderRadius: 999,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShimmerBox extends StatefulWidget {
+  const _ShimmerBox({
+    required this.width,
+    required this.height,
+    required this.borderRadius,
+  });
+
+  final double width;
+  final double height;
+  final double borderRadius;
+
+  @override
+  State<_ShimmerBox> createState() => _ShimmerBoxState();
+}
+
+class _ShimmerBoxState extends State<_ShimmerBox>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final base = scheme.surfaceContainerHighest.withValues(alpha: 0.55);
+    final highlight = scheme.surface.withValues(alpha: 0.92);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(widget.borderRadius),
+      child: SizedBox(
+        width: widget.width,
+        height: widget.height,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            final slide = (_controller.value * 2) - 1;
+            return DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment(-1.8 + slide, -0.2),
+                  end: Alignment(-0.8 + slide, 0.2),
+                  colors: [
+                    base,
+                    highlight,
+                    base,
+                  ],
+                  stops: const [0.15, 0.5, 0.85],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 }
 
