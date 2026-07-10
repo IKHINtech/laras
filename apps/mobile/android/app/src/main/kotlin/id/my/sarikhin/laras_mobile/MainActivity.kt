@@ -4,16 +4,28 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.audiofx.AudioEffect
+import android.os.Handler
+import android.os.Looper
 import androidx.core.content.FileProvider
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
+import java.util.concurrent.Executors
 
 class MainActivity : AudioServiceActivity() {
     private val equalizerChannelName = "laras/equalizer"
     private val appIconChannelName = "laras/app_icon"
     private val shareChannelName = "laras/share"
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val appIconExecutor = Executors.newSingleThreadExecutor()
+
+    private val launcherAliases =
+        listOf(
+            "id.my.sarikhin.laras_mobile.DefaultLauncherAlias",
+            "id.my.sarikhin.laras_mobile.DarkLauncherAlias",
+            "id.my.sarikhin.laras_mobile.NeonLauncherAlias",
+        )
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -58,7 +70,25 @@ class MainActivity : AudioServiceActivity() {
                             result.error("missing_variant", "Launcher icon variant is required.", null)
                             return@setMethodCallHandler
                         }
-                        result.success(setLauncherIcon(variant))
+                        appIconExecutor.execute {
+                            val changed =
+                                try {
+                                    setLauncherIcon(variant)
+                                } catch (error: Throwable) {
+                                    mainHandler.post {
+                                        result.error(
+                                            "set_icon_failed",
+                                            error.message ?: "Failed to switch launcher icon.",
+                                            null,
+                                        )
+                                    }
+                                    return@execute
+                                }
+
+                            mainHandler.post {
+                                result.success(changed)
+                            }
+                        }
                     }
 
                     else -> result.notImplemented()
@@ -114,25 +144,31 @@ class MainActivity : AudioServiceActivity() {
                 else -> return false
             }
 
-        val aliases =
-            listOf(
-                "id.my.sarikhin.laras_mobile.DefaultLauncherAlias",
-                "id.my.sarikhin.laras_mobile.DarkLauncherAlias",
-                "id.my.sarikhin.laras_mobile.NeonLauncherAlias",
-            )
+        val currentlyEnabled =
+            launcherAliases.filter { aliasName ->
+                val state =
+                    packageManager.getComponentEnabledSetting(ComponentName(this, aliasName))
+                state == PackageManager.COMPONENT_ENABLED_STATE_ENABLED ||
+                    state == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT
+            }
 
-        aliases.forEach { aliasName ->
+        if (currentlyEnabled.size == 1 && currentlyEnabled.first() == targetAlias) {
+            return true
+        }
+
+        launcherAliases.forEach { aliasName ->
             val state =
                 if (aliasName == targetAlias) {
                     PackageManager.COMPONENT_ENABLED_STATE_ENABLED
                 } else {
                     PackageManager.COMPONENT_ENABLED_STATE_DISABLED
                 }
-            packageManager.setComponentEnabledSetting(
-                ComponentName(this, aliasName),
-                state,
-                PackageManager.DONT_KILL_APP,
-            )
+
+            val component = ComponentName(this, aliasName)
+            val currentState = packageManager.getComponentEnabledSetting(component)
+            if (currentState == state) return@forEach
+
+            packageManager.setComponentEnabledSetting(component, state, PackageManager.DONT_KILL_APP)
         }
 
         return true

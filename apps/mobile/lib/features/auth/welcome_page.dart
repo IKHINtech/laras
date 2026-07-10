@@ -44,7 +44,11 @@ class WelcomePage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.music_note, size: 72),
+                  Image.asset(
+                    'android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png',
+                    width: 72,
+                    height: 72,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     l10n.appTitle,
