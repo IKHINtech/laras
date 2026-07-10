@@ -6,7 +6,6 @@ import '../../core/auth_store.dart';
 import '../../core/locale_controller.dart';
 import '../../core/theme_controller.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/app_localizations_ext.dart';
 import '../player/player_controller.dart';
 import 'local_music_store.dart';
 import 'server_auth_required_view.dart';

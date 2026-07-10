@@ -32,6 +32,8 @@ class LocaleController extends ChangeNotifier {
         return const Locale('en');
       case 'id':
         return const Locale('id');
+      case 'ja':
+        return const Locale('ja');
       default:
         return null;
     }

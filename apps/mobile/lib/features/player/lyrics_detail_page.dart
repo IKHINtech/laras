@@ -7,7 +7,6 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../core/share_bridge.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/app_localizations_ext.dart';
 import '../library/song.dart';
 import 'lyrics_service.dart';
 import 'player_controller.dart';
@@ -773,50 +772,46 @@ class _LyricsDetailPageState extends State<LyricsDetailPage> {
 
 String _lyricsShareThemeLabel(AppLocalizations l10n, LyricsShareTheme theme) {
   return switch (theme) {
-    LyricsShareTheme.laras => 'Laras Night',
-    LyricsShareTheme.aurora => 'Aurora Glow',
-    LyricsShareTheme.daylight => 'Daylight Paper',
+    LyricsShareTheme.laras => l10n.shareThemeLarasNight,
+    LyricsShareTheme.aurora => l10n.shareThemeAuroraGlow,
+    LyricsShareTheme.daylight => l10n.shareThemeDaylightPaper,
   };
 }
 
 String _lyricsShareFormatLabel(
     AppLocalizations l10n, LyricsShareFormat format) {
   return switch (format) {
-    LyricsShareFormat.square => l10n.isIndonesian ? 'Persegi' : 'Square',
-    LyricsShareFormat.story => 'Instagram Story',
+    LyricsShareFormat.square => l10n.shareFormatSquare,
+    LyricsShareFormat.story => l10n.shareFormatStory,
   };
 }
 
 String _lyricsShareFontWeightLabel(
     AppLocalizations l10n, LyricsShareFontWeight weight) {
   return switch (weight) {
-    LyricsShareFontWeight.medium => l10n.isIndonesian ? 'Medium' : 'Medium',
-    LyricsShareFontWeight.semibold =>
-      l10n.isIndonesian ? 'Semi Bold' : 'Semibold',
-    LyricsShareFontWeight.bold => 'Bold',
-    LyricsShareFontWeight.heavy => l10n.isIndonesian ? 'Tebal' : 'Heavy',
+    LyricsShareFontWeight.medium => l10n.shareFontWeightMedium,
+    LyricsShareFontWeight.semibold => l10n.shareFontWeightSemibold,
+    LyricsShareFontWeight.bold => l10n.shareFontWeightBold,
+    LyricsShareFontWeight.heavy => l10n.shareFontWeightHeavy,
   };
 }
 
 String _lyricsSharePresetLabel(
     AppLocalizations l10n, LyricsShareLayoutPreset preset) {
   return switch (preset) {
-    LyricsShareLayoutPreset.quote => 'Quote',
-    LyricsShareLayoutPreset.poster => 'Poster',
-    LyricsShareLayoutPreset.story => 'Story',
-    LyricsShareLayoutPreset.custom => l10n.isIndonesian ? 'Kustom' : 'Custom',
+    LyricsShareLayoutPreset.quote => l10n.sharePresetQuote,
+    LyricsShareLayoutPreset.poster => l10n.sharePresetPoster,
+    LyricsShareLayoutPreset.story => l10n.sharePresetStory,
+    LyricsShareLayoutPreset.custom => l10n.sharePresetCustom,
   };
 }
 
 String _lyricsShareAlignmentLabel(
     AppLocalizations l10n, LyricsShareTextAlignment alignment) {
   return switch (alignment) {
-    LyricsShareTextAlignment.left =>
-      l10n.isIndonesian ? 'Rata kiri' : 'Align left',
-    LyricsShareTextAlignment.center =>
-      l10n.isIndonesian ? 'Rata tengah' : 'Center',
-    LyricsShareTextAlignment.right =>
-      l10n.isIndonesian ? 'Rata kanan' : 'Align right',
+    LyricsShareTextAlignment.left => l10n.shareTextAlignLeft,
+    LyricsShareTextAlignment.center => l10n.shareTextAlignCenter,
+    LyricsShareTextAlignment.right => l10n.shareTextAlignRight,
   };
 }
 

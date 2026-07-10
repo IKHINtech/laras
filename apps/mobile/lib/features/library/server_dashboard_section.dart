@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/app_localizations_ext.dart';
 
 class ServerDashboardSection extends StatelessWidget {
   const ServerDashboardSection({

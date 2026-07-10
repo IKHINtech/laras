@@ -22,7 +22,6 @@ class MainActivity : AudioServiceActivity() {
 
     private val launcherAliases =
         listOf(
-            "id.my.sarikhin.laras_mobile.DefaultLauncherAlias",
             "id.my.sarikhin.laras_mobile.DarkLauncherAlias",
             "id.my.sarikhin.laras_mobile.NeonLauncherAlias",
         )
@@ -138,7 +137,7 @@ class MainActivity : AudioServiceActivity() {
     private fun setLauncherIcon(variant: String): Boolean {
         val targetAlias =
             when (variant) {
-                "default" -> "id.my.sarikhin.laras_mobile.DefaultLauncherAlias"
+                "default" -> null
                 "dark" -> "id.my.sarikhin.laras_mobile.DarkLauncherAlias"
                 "neon" -> "id.my.sarikhin.laras_mobile.NeonLauncherAlias"
                 else -> return false
@@ -148,11 +147,17 @@ class MainActivity : AudioServiceActivity() {
             launcherAliases.filter { aliasName ->
                 val state =
                     packageManager.getComponentEnabledSetting(ComponentName(this, aliasName))
-                state == PackageManager.COMPONENT_ENABLED_STATE_ENABLED ||
-                    state == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT
+                state == PackageManager.COMPONENT_ENABLED_STATE_ENABLED
             }
 
-        if (currentlyEnabled.size == 1 && currentlyEnabled.first() == targetAlias) {
+        if (targetAlias == null && currentlyEnabled.isEmpty()) {
+            return true
+        }
+
+        if (targetAlias != null &&
+            currentlyEnabled.size == 1 &&
+            currentlyEnabled.first() == targetAlias
+        ) {
             return true
         }
 

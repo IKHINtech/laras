@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
 import '../../l10n/app_localizations.dart';
-import '../../l10n/app_localizations_ext.dart';
 import '../player/player_controller.dart';
 import 'song.dart';
 

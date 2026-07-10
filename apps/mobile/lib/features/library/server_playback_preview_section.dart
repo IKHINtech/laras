@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../../l10n/app_localizations_ext.dart';
 import 'local_music_store.dart';
 import 'playback_insights_page.dart';
 

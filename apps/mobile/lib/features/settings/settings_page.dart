@@ -348,6 +348,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ButtonSegment(value: 'system', label: Text(l10n.languageSystem)),
             ButtonSegment(value: 'id', label: Text(l10n.languageIndonesian)),
             ButtonSegment(value: 'en', label: Text(l10n.languageEnglish)),
+            ButtonSegment(value: 'ja', label: Text(l10n.languageJapanese)),
           ],
           selected: {widget.localeController.currentCode},
           onSelectionChanged: (value) =>
