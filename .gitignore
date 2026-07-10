@@ -1,0 +1,33 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# Local environment files
+.env
+.env.local
+services/api/.env
+
+# Dependency and build caches
+.dart_tool/
+.pub-cache/
+.turbo/
+dist/
+build/
+coverage/
+tmp/
+
+# Go artifacts
+*.test
+*.out
+coverage.out
+
+# API runtime data
+services/api/storage/
+
